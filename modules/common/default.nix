@@ -132,7 +132,21 @@
     # since those are the server's authorized keys and it is not clear which
     # still correspond to live private keys.
     openssh.authorizedKeys.keys = [ ];
+
+    # NO PASSWORD IS SET HERE, deliberately. Options, worst to best:
+    #   initialPassword      — plaintext, world-readable in the nix store
+    #   initialHashedPassword— hash in git; fine for a bootstrap, still public
+    #   hashedPasswordFile   — a sops-nix secret; the right long-term answer
+    #
+    # Until one of those exists the account has no password and cannot log in at
+    # the greeter. The install procedure in INSTALL.md covers this: nixos-install
+    # prompts for a root password, and `passwd sergiusens` from a root TTY sets
+    # yours. mutableUsers stays true below so that works.
   };
+
+  # Passwords can be changed with passwd and survive a rebuild. Set false only
+  # once hashedPasswordFile is wired to sops, or a rebuild will lock you out.
+  users.mutableUsers = true;
 
   security.sudo.wheelNeedsPassword = true;
 

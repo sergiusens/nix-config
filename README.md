@@ -84,6 +84,9 @@ Fixed during the first evaluation, recorded so they are not reintroduced:
 
 ## Installing
 
+Step-by-step procedure: **[INSTALL.md](./INSTALL.md)**. Summary of the constraints:
+
+
 `hosts/leto/disko.nix` describes the disk layout declaratively. It is inert during
 `nixos-rebuild`; only an explicit `disko` invocation touches a disk, and that invocation
 **destroys everything on `/dev/nvme0n1`**.
