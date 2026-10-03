@@ -16,22 +16,71 @@
   };
 
   # ------------------------------------------------------------------- greeter --
-  # tuigreet on a TTY: no second desktop stack dragged in just to log in, and it
-  # cannot itself fail to start a Wayland session.
-  services.greetd = {
+  # ReGreet: a GTK4/libadwaita greeter for greetd, run inside cage (a minimal
+  # Wayland kiosk compositor). Chosen over tuigreet because this is a HiDPI
+  # laptop and a TTY greeter renders at console font size — legible only with a
+  # hand-tuned console font. Chosen over GDM/SDDM because it needs neither GNOME
+  # nor Qt.
+  #
+  # The NixOS module sets services.greetd.enable and the default_session command
+  # itself, both with mkDefault — so do NOT also set a command here, or it will
+  # silently win and launch something else.
+  programs.regreet = {
     enable = true;
-    settings.default_session = {
-      command = toString [
-        "${pkgs.tuigreet}/bin/tuigreet"
-        "--time"
-        "--remember"
-        "--remember-user-session"
-        "--asterisks"
-        "--cmd 'uwsm start hyprland-uwsm.desktop'"
-      ];
-      user = "greeter";
+
+    # Matches the GTK theming in home/sergiusens: Adwaita-dark with Papirus
+    # icons and Inter, so the greeter and the session agree.
+    theme = {
+      package = pkgs.gnome-themes-extra;
+      name = "Adwaita-dark";
+    };
+    iconTheme = {
+      package = pkgs.papirus-icon-theme;
+      name = "Papirus-Dark";
+    };
+    cursorTheme = {
+      package = pkgs.adwaita-icon-theme;
+      name = "Adwaita";
+    };
+    font = {
+      package = pkgs.inter;
+      name = "Inter";
+      size = 14;
+    };
+
+    settings = {
+      # The module fills in GTK.theme_name / icon_theme_name / font_name /
+      # cursor_theme_name from the options above, but not this one.
+      GTK.application_prefer_dark_theme = true;
+
+      commands = {
+        reboot = [
+          "systemctl"
+          "reboot"
+        ];
+        poweroff = [
+          "systemctl"
+          "poweroff"
+        ];
+      };
     };
   };
+
+  # The greeter's own session user; the regreet module reads this to own
+  # /var/lib/regreet and asserts the user exists.
+  services.greetd.settings.default_session.user = "greeter";
+
+  # ReGreet's session search path is baked in at compile time as
+  # /usr/share/xsessions:/usr/share/wayland-sessions, and nixpkgs does not
+  # override it — there is no SESSION_DIRS handling in its package.nix. Neither
+  # path exists on NixOS, so without this the session dropdown can come up
+  # empty. Point it at where NixOS actually puts session files.
+  #
+  # Not a lockout risk even if it fails: ReGreet allows typing a session command
+  # by hand, so `uwsm start hyprland-uwsm.desktop` always gets you in.
+  #
+  # VERIFY on first boot that Hyprland appears in the session dropdown.
+  systemd.services.greetd.environment.SESSION_DIRS = "/run/current-system/sw/share/wayland-sessions";
 
   # Keeps the greeter from being scribbled over by kernel messages.
   boot.kernelParams = [ "quiet" ];
