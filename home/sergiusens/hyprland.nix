@@ -52,12 +52,17 @@
         touchpad = {
           natural_scroll = true;
           disable_while_typing = true;
-          tap-to-click = true;
+          # Underscores, not hyphens: the valid key per Hyprland's own stubs
+          # (share/hypr/stubs/hl.meta.lua) is input.touchpad.tap_to_click.
+          tap_to_click = true;
         };
         sensitivity = 0;
       };
 
-      gestures.workspace_swipe = true;
+      # gestures:workspace_swipe was removed in favour of a general `gesture`
+      # keyword: fingers, direction, action. The gestures.workspace_swipe_*
+      # tuning options still exist, only the master toggle moved.
+      gesture = "3, horizontal, workspace";
 
       # ----------------------------------------------------------- appearance --
       general = {
@@ -89,7 +94,8 @@
       };
 
       dwindle = {
-        pseudotile = true;
+        # dwindle:pseudotile no longer exists; pseudo is a dispatcher now and is
+        # bound to $mod+P below.
         preserve_split = true;
       };
 
@@ -129,7 +135,9 @@
         "$mod, V, togglefloating,"
         "$mod, F, fullscreen,"
         "$mod, P, pseudo,"
-        "$mod, J, togglesplit,"
+        # togglesplit is a dwindle layout message, not a top-level dispatcher
+        # (the default config calls hl.dsp.layout("togglesplit")).
+        "$mod, J, layoutmsg, togglesplit"
 
         # Clipboard history
         "$mod SHIFT, V, exec, cliphist list | fuzzel --dmenu | cliphist decode | wl-copy"

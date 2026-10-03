@@ -69,6 +69,34 @@ config here the credentials must move behind encrypted secrets rather than being
 Specifically do not commit: registry auth JSON, Tailscale auth keys, the CrowdStrike CID,
 Kolide enrollment secrets, cosign private keys, or password hashes.
 
+## Validating a Hyprland config
+
+Hyprland renames and removes config options between releases, and neither `nix build` nor
+evaluation catches it — a stale option only surfaces as a red banner at runtime. The
+Hyprland package ships its own answer key:
+
+- `share/hypr/stubs/hl.meta.lua` — every valid config key, as `---| "section.key"` lines
+- `share/hypr/hyprland.lua` — the upstream default config, which shows current idiom
+
+Extract the valid keys and diff them against the generated config rather than guessing at
+renames:
+
+```bash
+# valid keys
+grep -oE '^---\|\s*"[a-z0-9_.:-]+"' .../share/hypr/stubs/hl.meta.lua
+# what we generate
+nix eval --raw .#nixosConfigurations.leto.config.home-manager.users.sergiusens\
+  .xdg.configFile.\"hypr/hyprland.conf\".source
+```
+
+Two caveats learned doing this:
+
+- `bezier` and `animation` are hyprlang **keywords**, not config keys, so they are absent
+  from the stubs and that is correct. Same for `bind`, `monitor`, `exec-once`, `gesture`.
+- Dispatchers are not config keys either. Check them against `hl.dsp.*` in the default
+  Lua config: `togglesplit` is `hl.dsp.layout("togglesplit")`, i.e. `layoutmsg,
+  togglesplit` in hyprlang, not a top-level dispatcher.
+
 ## Vendored code
 
 `modules/work/falcon-sensor.nix` and the two `falcon-sensor-*.sh` scripts are vendored
