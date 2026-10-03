@@ -98,6 +98,45 @@ If calibrated colour matters to your workflow, test it on a spare install first.
 be a poor trade to get a declarative system and lose colour accuracy on the machine whose
 entire job is photographs.
 
+### leto's webcam is the biggest single risk
+
+`leto` has **no USB webcam**. The front camera is an OmniVision OV01A10 MIPI sensor behind
+the Raptor Lake IPU, so it is not a UVC device that works everywhere — it needs the IPU6
+capture path plus libcamera's software ISP, and then PipeWire plumbing before any
+application can see it.
+
+`modules/hardware/ipu6-camera.nix` sets this up via the **in-tree** route (IPU6 ISYS has
+been in mainline since kernel 6.10, so no out-of-tree DKMS), deliberately avoiding
+`hardware.ipu6.enable`, which pulls Intel's proprietary HAL and the out-of-tree drivers
+that conflict with the in-tree modules on a modern kernel.
+
+**It is not confirmed working.** Verify on first boot with `cam -l` and `wpctl status`.
+If you need reliable video calls before this is solved, a cheap USB UVC webcam works
+instantly and bypasses the entire problem — genuinely the pragmatic answer.
+
+Note the image-quality tradeoff even when it does work: the software ISP does the Bayer
+demosaic on CPU (GPU-accelerated since libcamera 0.7) rather than on the IPU's dedicated
+hardware ISP. Bluefin works today because Universal Blue ships this stack configured.
+
+### Suspend works, but only s2idle
+
+Confirmed on the running machine: `/sys/power/mem_sleep` reports `[s2idle]` and nothing
+else. Dell exposes no S3/deep state on the XPS 13 Plus, so suspend is Modern Standby.
+
+It works today and will work the same under NixOS — it's kernel plus systemd, with nothing
+Bluefin-specific involved. Suspend/resume is clean in the journal with devices suspending
+in about 1.3 seconds.
+
+The catch is that s2idle keeps RAM powered, so a closed lid over a weekend drains far more
+than S3 would. The fix is `suspend-then-hibernate`, which is now worth wiring up because
+the 64 GiB swapfile added for the OOM problem is comfortably larger than the 30 GiB
+hibernation needs to write. It is commented out in `hosts/leto/default.nix` pending one
+value that can only be read after the swapfile exists:
+
+```bash
+sudo btrfs inspect-internal map-swapfile -r /swap/swapfile
+```
+
 ### The work laptop's compliance agents
 
 No longer stubs. `modules/work/policy.nix` wires up both agents, gated behind

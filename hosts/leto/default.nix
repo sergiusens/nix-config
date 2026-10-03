@@ -11,6 +11,7 @@
     ./disko.nix
     ../../modules/desktop/hyprland.nix
     ../../modules/hardware/intel-graphics.nix
+    ../../modules/hardware/ipu6-camera.nix
     ../../modules/hardware/printing.nix
     ../../modules/profiles/laptop.nix
   ];
@@ -36,11 +37,31 @@
   # means a slow, recoverable crawl instead of a lost application.
   systemd.oomd.enableUserSlices = false;
 
-  # NOTE: hibernation needs boot.resumeDevice plus the swapfile's physical
-  # offset, which only exists once the file does:
+  # -------------------------------------------------------------------- sleep --
+  # This machine supports ONLY s2idle. Confirmed on the running system:
+  #   /sys/power/mem_sleep -> [s2idle]
+  # Dell exposes no S3/deep state on the XPS 13 Plus, so suspend is Modern
+  # Standby. It works (suspend entry/exit is clean in the journal, devices
+  # suspend in ~1.3 s) but s2idle keeps RAM powered and drains noticeably more
+  # than S3 would over a closed-lid weekend.
+  #
+  # The mitigation is suspend-then-hibernate: suspend normally, then write out
+  # to disk and power off after a delay. Now worth doing, because the 64 GiB
+  # swapfile added for the photo-OOM problem is comfortably larger than the
+  # 30 GiB of RAM that hibernation needs to dump.
+  #
+  # TODO: hibernation needs the swapfile's physical offset, which only exists
+  # once the file does. After the first boot:
   #   sudo btrfs inspect-internal map-swapfile -r /swap/swapfile
-  # then set boot.kernelParams = [ "resume_offset=<N>" ] and
-  # boot.resumeDevice = "/dev/mapper/cryptroot". Not configured yet.
+  # then uncomment below with that number. Encrypted swap on LUKS is fine —
+  # the initrd unlocks cryptroot before resuming.
+  #
+  # boot.resumeDevice = "/dev/mapper/cryptroot";
+  # boot.kernelParams = [ "resume_offset=<N>" ];
+  # systemd.sleep.extraConfig = ''
+  #   HibernateDelaySec=90min
+  # '';
+  # services.logind.settings.Login.HandleLidSwitch = lib.mkForce "suspend-then-hibernate";
 
   # ------------------------------------------------------------------ hardware --
   # Verify against `nixos-generate-config --show-hardware-config` on the real
