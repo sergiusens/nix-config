@@ -1,0 +1,12 @@
+# nix build outputs
+result
+result-*
+
+# direnv / nix-direnv
+.direnv/
+.envrc.local
+
+# sops/agenix decrypted material — never commit plaintext secrets
+*.dec
+*.dec.*
+secrets.decrypted.*
