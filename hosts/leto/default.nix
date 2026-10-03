@@ -100,6 +100,7 @@
     claude-desktop # from the flake input; see the caveat in flake.nix
 
     # --- desktop ----------------------------------------------------------
+    fractal # Matrix client; complements telegram-desktop and slack
     helix # editor
     newsflash # RSS
     papers # the GTK4 document viewer that replaced Evince
@@ -111,6 +112,11 @@
     localsend # was a flatpak preinstall on bluefin-xp
     nextcloud-client # likewise
   ];
+
+  # programs.firefox rather than the bare package: it wires up policies, native
+  # messaging hosts and the desktop integration that a plain systemPackages
+  # entry does not.
+  programs.firefox.enable = true;
 
   networking.firewall = {
     # LocalSend needs these to discover and receive from phones on the LAN.

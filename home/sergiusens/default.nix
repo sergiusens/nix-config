@@ -1,4 +1,4 @@
-{ pkgs, ... }:
+{ pkgs, hostName, ... }:
 {
   imports = [
     ./hyprland.nix
@@ -187,6 +187,30 @@
 
   # Clipboard history daemon, fed by the Hyprland exec-once below.
   home.packages = with pkgs; [ cliphist ];
+
+  # Default browser differs by host: leto is Firefox, kynes keeps the
+  # work-issued Chrome. Hyprland has no desktop environment to arbitrate this,
+  # so the associations have to be stated.
+  xdg.mimeApps =
+    let
+      browser = if hostName == "kynes" then "google-chrome.desktop" else "firefox.desktop";
+    in
+    {
+      enable = true;
+      defaultApplications = {
+        "text/html" = browser;
+        "x-scheme-handler/http" = browser;
+        "x-scheme-handler/https" = browser;
+        "x-scheme-handler/about" = browser;
+        "x-scheme-handler/unknown" = browser;
+        "application/pdf" = "org.gnome.Papers.desktop";
+        "image/jpeg" = "org.gnome.gthumb.desktop";
+        "image/png" = "org.gnome.gthumb.desktop";
+      };
+    };
+
+  home.sessionVariables.BROWSER =
+    if hostName == "kynes" then "google-chrome-stable" else "firefox";
 
   gtk = {
     enable = true;
