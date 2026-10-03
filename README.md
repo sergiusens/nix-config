@@ -98,25 +98,34 @@ If calibrated colour matters to your workflow, test it on a spare install first.
 be a poor trade to get a declarative system and lose colour accuracy on the machine whose
 entire job is photographs.
 
-### leto's webcam is the biggest single risk
+### leto's webcam needs the IPU6 stack
 
 `leto` has **no USB webcam**. The front camera is an OmniVision OV01A10 MIPI sensor behind
-the Raptor Lake IPU, so it is not a UVC device that works everywhere — it needs the IPU6
-capture path plus libcamera's software ISP, and then PipeWire plumbing before any
-application can see it.
+the Raptor Lake IPU, so it is not a UVC device that works everywhere.
 
-`modules/hardware/ipu6-camera.nix` sets this up via the **in-tree** route (IPU6 ISYS has
-been in mainline since kernel 6.10, so no out-of-tree DKMS), deliberately avoiding
-`hardware.ipu6.enable`, which pulls Intel's proprietary HAL and the out-of-tree drivers
-that conflict with the in-tree modules on a modern kernel.
+`modules/hardware/ipu6-camera.nix` enables nixpkgs' `hardware.ipu6` with
+`platform = "ipu6ep"` (Alder Lake / Raptor Lake). That module does the real work: the
+out-of-tree `ipu6-drivers` for the hardware ISP and i2c sensor drivers, the firmware, and
+`v4l2-relayd` feeding Intel's `icamerasrc` pipeline through `v4l2loopback` to a fixed
+`/dev/video50` labelled "Intel MIPI Camera". Applications therefore see an ordinary V4L2
+camera, which is what makes browsers work. It also hides the ~30 raw Bayer nodes from
+WirePlumber, which would otherwise show up as a pile of broken cameras.
 
-**It is not confirmed working.** Verify on first boot with `cam -l` and `wpctl status`.
-If you need reliable video calls before this is solved, a cheap USB UVC webcam works
-instantly and bypasses the entire problem — genuinely the pragmatic answer.
+This configuration is [reported working on exactly this
+machine](https://gist.github.com/p-alik/6ed132ffad59de8fcbc4fb10b54d745e?permalink_comment_id=6136497)
+as of May 2026, so it is on much firmer ground than most of this repo. Verify after first
+boot:
 
-Note the image-quality tradeoff even when it does work: the software ISP does the Bayer
-demosaic on CPU (GPU-accelerated since libcamera 0.7) rather than on the IPU's dedicated
-hardware ISP. Bluefin works today because Universal Blue ships this stack configured.
+```bash
+v4l2-ctl --list-devices        # expect "Intel MIPI Camera" at /dev/video50
+wpctl status                   # expect one Video/Source, not thirty
+systemctl status v4l2-relayd-ipu6
+```
+
+One consequence worth knowing: `ipu6-drivers` is an **out-of-tree kernel module**, so it
+must build against whichever kernel the host runs. That is why `modules/common` does not
+pin `linuxPackages_latest` — an out-of-tree module that fails to build takes the whole
+rebuild with it, and the usual symptom is "my camera broke after an update".
 
 ### Suspend works, but only s2idle
 

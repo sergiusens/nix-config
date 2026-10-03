@@ -1,61 +1,55 @@
 # Intel IPU6 MIPI camera (leto: Raptor Lake IPU + OmniVision OV01A10).
 #
 # This machine has NO USB webcam. The front camera is a MIPI CSI-2 sensor behind
-# Intel's Image Processing Unit, which is why it is not simply a UVC device that
-# works everywhere. Confirmed on the running Bluefin system:
+# Intel's Image Processing Unit, which is why it is not simply a UVC device.
+# Confirmed on the running Bluefin system:
 #   00:05.0 Multimedia controller: Intel Corporation Raptor Lake IPU [8086:a75d]
 #   Kernel driver in use: intel-ipu6
 #   sensor module: ov01a10 (ACPI OVTI01A0), glue: intel_skl_int3472_*
 #   firmware: intel/ipu/ipu6ep_fw.bin  -> platform is "ipu6ep"
 #
-# The pipeline is:
-#   sensor -> IPU6 ISYS (raw Bayer capture, IN-TREE since kernel 6.10)
-#          -> libcamera Simple pipeline -> SoftISP (debayer; GPU-accelerated
-#             since libcamera 0.7) -> PipeWire -> applications
+# nixpkgs' hardware.ipu6 module does all the real work, and does it well:
 #
-# Deliberately NOT setting hardware.ipu6.enable. That option brings in Intel's
-# proprietary ipu6-camera-hal / icamerasrc stack together with the out-of-tree
-# ipu6-drivers, which was the only route before 6.10 but now conflicts with the
-# in-tree modules. For the OV01A10 in particular the libcamera path is the one
-# that works; mixing the two is a known way to end up with neither.
+#   - pulls boot.extraModulePackages = [ ipu6-drivers ]. ISYS (raw capture) has
+#     been in-tree since 6.10, but the out-of-tree package is still needed for
+#     intel-ipu6-psys (the hardware ISP) and some i2c sensor drivers, so the two
+#     are complementary rather than conflicting.
+#   - firmware: ipu6-camera-bins and ivsc-firmware.
+#   - runs v4l2-relayd, feeding Intel's proprietary icamerasrc GStreamer
+#     pipeline through v4l2loopback to a FIXED /dev/video50 labelled
+#     "Intel MIPI Camera". Applications therefore see an ordinary V4L2 camera,
+#     which is what makes browsers and Electron apps work. The device number is
+#     pinned because application camera permission grants are keyed to the
+#     PipeWire node name, which derives from the sysfs path.
+#   - hides the raw IPU6 nodes from WirePlumber (they carry raw Bayer that
+#     nothing but libcamera understands, and would otherwise appear as a pile of
+#     broken cameras) and restricts them to root via udev with TAG-="uaccess".
 #
-# ####################### VERIFY THIS ON FIRST BOOT #######################
-# This is the highest-risk item on leto and it is NOT confirmed working under
-# NixOS. The kernel side should be automatic, but the libcamera/PipeWire
-# plumbing below is the part most likely to need adjustment. Check with:
-#   cam -l                      # libcamera should list the OV01A10
-#   wpctl status                # PipeWire should show a Video/Source
-# If the camera matters before this is solved, any cheap USB UVC webcam works
-# immediately and bypasses all of it.
-# #########################################################################
+# This uses the IPU's hardware ISP via Intel's camera HAL, so image quality is
+# better than the libcamera SoftISP route, which debayers on CPU/GPU instead.
+#
+# Reported working on exactly this machine with exactly this configuration:
+# https://gist.github.com/p-alik/6ed132ffad59de8fcbc4fb10b54d745e?permalink_comment_id=6136497
 { pkgs, ... }:
 {
-  # Loaded automatically by ACPI matching on this hardware; listed explicitly so
-  # a failure to bind is visible rather than silent.
-  boot.kernelModules = [
-    "intel_ipu6"
-    "intel_ipu6_isys"
-    "ipu_bridge"
-    "ov01a10"
-  ];
-
-  # Firmware (intel/ipu/ipu6ep_fw.bin) ships in linux-firmware; pulled in by
-  # hardware.enableRedistributableFirmware, set in hosts/leto/default.nix.
+  hardware.ipu6 = {
+    enable = true;
+    # ipu6 = Tiger Lake, ipu6ep = Alder Lake / Raptor Lake, ipu6epmtl = Meteor Lake.
+    platform = "ipu6ep";
+    # videoDeviceNumber defaults to 50, clear of the IPU6 raw node range (3-34).
+  };
 
   environment.systemPackages = with pkgs; [
-    libcamera # provides `cam` for diagnosis, and the SoftISP itself
+    libcamera # `cam -l` for diagnosis
     v4l-utils # v4l2-ctl --list-devices
   ];
 
-  # Applications reach a libcamera device through PipeWire, not /dev/video*
-  # directly — the ISYS nodes expose raw Bayer that nothing but libcamera
-  # understands. WirePlumber 0.5 needs its libcamera monitor switched on
-  # explicitly; without this the camera exists but no application sees it.
+  # Verify after the first boot:
+  #   v4l2-ctl --list-devices        # expect "Intel MIPI Camera" at /dev/video50
+  #   wpctl status                   # expect one Video/Source, not 30-odd
+  #   systemctl status v4l2-relayd-ipu6
   #
-  # VERIFY: the profile syntax below is for WirePlumber 0.5. Check it against
-  # the pinned nixpkgs, and that the pipewire build has its libcamera SPA
-  # plugin enabled.
-  services.pipewire.wireplumber.extraConfig."10-libcamera" = {
-    "wireplumber.profiles".main."monitor.libcamera" = "required";
-  };
+  # NOTE: ipu6-drivers is an out-of-tree kernel module, so it must build against
+  # whichever kernel this host runs. That is why modules/common no longer pins
+  # linuxPackages_latest — see the comment there.
 }

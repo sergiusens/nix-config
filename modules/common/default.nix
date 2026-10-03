@@ -51,7 +51,17 @@
     };
     # systemd in initrd: needed for a clean LUKS passphrase prompt and plymouth.
     initrd.systemd.enable = true;
-    kernelPackages = pkgs.linuxPackages_latest;
+
+    # Deliberately NOT linuxPackages_latest. Both hosts depend on out-of-tree or
+    # kernel-version-sensitive modules that lag the newest kernel:
+    #   - leto needs ipu6-drivers (out-of-tree) for the camera's hardware ISP;
+    #     an out-of-tree module that fails to build takes the whole rebuild with
+    #     it, and "my camera broke after an update" is the usual symptom.
+    #   - kynes runs the Falcon sensor, which drops into Reduced Functionality
+    #     Mode when the kernel outruns what CrowdStrike supports.
+    # The NixOS default is the well-tested choice that out-of-tree packages are
+    # maintained against. Pin a specific kernel per-host if you need one.
+    kernelPackages = pkgs.linuxPackages;
   };
 
   # Two-tier swap, fast tier. zram is compressed RAM, so it does NOT add
