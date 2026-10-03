@@ -66,6 +66,17 @@ config here the credentials must move behind encrypted secrets rather than being
 Specifically do not commit: registry auth JSON, Tailscale auth keys, the CrowdStrike CID,
 Kolide enrollment secrets, cosign private keys, or password hashes.
 
+## Vendored code
+
+`modules/work/falcon-sensor.nix` and the two `falcon-sensor-*.sh` scripts are vendored
+verbatim from <https://github.com/wimpysworld/nix-config> under the Blue Oak Model
+License. **Do not reformat, refactor or "clean up" those three files** — keeping them
+byte-identical is what makes it possible to diff against upstream and pull in fixes.
+`modules/work/ATTRIBUTION.md` records the pinned commit and checksums; keep it in place,
+since the licence requires the notice to travel with the code.
+
+Fleet-specific configuration goes in `modules/work/policy.nix`, which is ours.
+
 ## Facts worth knowing
 
 - `thufir` holds a static `192.168.0.100` and serves LAN DNS via AdGuard Home, bound to

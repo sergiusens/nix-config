@@ -1,0 +1,25 @@
+# sops-nix rules. Secrets are encrypted to age keys; the private keys live
+# outside this repository and must never be committed.
+#
+# Generate a host key from its SSH host key after the first install:
+#   nix-shell -p ssh-to-age --run \
+#     'ssh-keyscan kynes.atreides | ssh-to-age'
+#
+# Generate your personal key once:
+#   nix-shell -p age --run 'age-keygen -o ~/.config/sops/age/keys.txt'
+#
+# Then replace the placeholders below with the real public keys, and create the
+# secrets file:
+#   sops secrets/policy.yaml
+keys:
+  # TODO: replace with your personal age public key (age1...)
+  - &admin_sergiusens age1PLACEHOLDERPLACEHOLDERPLACEHOLDERPLACEHOLDERPLACEHOLDER
+  # TODO: replace with kynes' host age public key, derived as above
+  - &host_kynes age1PLACEHOLDERPLACEHOLDERPLACEHOLDERPLACEHOLDERPLACEHOLDERHOST
+
+creation_rules:
+  - path_regex: secrets/policy\.yaml$
+    key_groups:
+      - age:
+          - *admin_sergiusens
+          - *host_kynes

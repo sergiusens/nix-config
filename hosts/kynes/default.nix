@@ -1,4 +1,4 @@
-# kynes — work laptop.
+# kynes — work laptop. Chainguard-issued; carries the endpoint compliance stack.
 #
 # ############################ HARDWARE UNKNOWN #############################
 # The machine's model, disk layout and firmware mode have not been inspected.
@@ -17,16 +17,23 @@
     ../../modules/desktop/hyprland.nix
     ../../modules/hardware/intel-graphics.nix
     ../../modules/profiles/laptop.nix
-    ../../modules/work/falcon-sensor.nix
-    ../../modules/work/kolide.nix
+    ../../modules/work/policy.nix
   ];
 
-  # Both managed-endpoint agents are off. They are unpacked stubs, not working
-  # modules — read the header comments in each before enabling. Until they work,
-  # this host is not a compliant managed endpoint, which may well be a reason to
-  # keep it on bootc instead.
-  fleet.falcon.enable = false;
-  fleet.kolide.enable = false;
+  # Turn on once secrets/policy.yaml is a real sops-encrypted file holding
+  # kolide, falcon-cid and falcon-repo. See modules/work/policy.nix and
+  # modules/work/ATTRIBUTION.md.
+  #
+  # Falcon additionally needs a one-off imperative bootstrap, since the sensor
+  # cannot be packaged declaratively:
+  #   gh auth login
+  #   falcon-sensor-install
+  # The service carries ConditionPathExists=/opt/CrowdStrike/falcond, so it
+  # stays inert rather than failing until that has run.
+  fleet.policy.enable = false;
+
+  # Intel graphics is assumed. If kynes turns out to be AMD, drop the
+  # intel-graphics import above.
 
   environment.systemPackages = with pkgs; [
     google-chrome # unfree; was installed from Google's RPM repo on bluefin-xp

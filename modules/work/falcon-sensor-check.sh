@@ -1,0 +1,202 @@
+#!/usr/bin/env bash
+
+# Check the health and status of the CrowdStrike Falcon sensor on NixOS.
+# Displays service status, sensor configuration, cloud connectivity,
+# and Reduced Functionality Mode (RFM) state.
+
+INSTALL_DIR="/opt/CrowdStrike"
+FALCONCTL="${INSTALL_DIR}/falconctl"
+PASS="PASS"
+FAIL="FAIL"
+WARN="WARN"
+INFO="INFO"
+ERRORS=0
+
+# Root is required to query falconctl. Self-elevate so a plain
+# falcon-sensor-check works.
+if [[ "$(id -u)" -ne 0 ]]; then
+	exec sudo "$0" "$@"
+fi
+
+echo "===================================="
+echo " CrowdStrike Falcon Sensor Check"
+echo "===================================="
+echo ""
+
+# Check binaries are installed.
+echo "--- Installation ---"
+if [[ -x "${FALCONCTL}" ]]; then
+	echo "  ${PASS}: falconctl found at ${FALCONCTL}"
+else
+	echo "  ${FAIL}: falconctl not found at ${FALCONCTL}"
+	echo ""
+	echo "Run falcon-sensor-install to bootstrap the sensor binaries."
+	exit 1
+fi
+
+if [[ -x "${INSTALL_DIR}/falcond" ]]; then
+	echo "  ${PASS}: falcond found"
+else
+	echo "  ${FAIL}: falcond not found"
+	ERRORS=$((ERRORS + 1))
+fi
+echo ""
+
+# Query sensor version, CID, and AID.
+echo "--- Sensor Identity ---"
+VERSION_OUTPUT=$("${FALCONCTL}" -g --version 2>&1) || true
+if [[ "${VERSION_OUTPUT}" == *"version ="* ]]; then
+	echo "  ${PASS}: ${VERSION_OUTPUT}"
+else
+	echo "  ${FAIL}: Unable to query sensor version"
+	ERRORS=$((ERRORS + 1))
+fi
+
+CID_OUTPUT=$("${FALCONCTL}" -g --cid 2>&1) || true
+if [[ "${CID_OUTPUT}" == *"cid="* ]]; then
+	echo "  ${PASS}: ${CID_OUTPUT}"
+else
+	echo "  ${FAIL}: CID is not set"
+	ERRORS=$((ERRORS + 1))
+fi
+
+AID_OUTPUT=$("${FALCONCTL}" -g --aid 2>&1) || true
+if [[ "${AID_OUTPUT}" == *"aid="* && "${AID_OUTPUT}" != *"aid=\"\"" ]]; then
+	echo "  ${PASS}: ${AID_OUTPUT}"
+else
+	echo "  ${WARN}: Agent ID not yet assigned (sensor may still be registering)"
+fi
+echo ""
+
+# Check RFM state.
+echo "--- Reduced Functionality Mode ---"
+RFM_OUTPUT=$("${FALCONCTL}" -g --rfm-state 2>&1) || true
+if [[ "${RFM_OUTPUT}" == *"rfm-state=false"* ]]; then
+	echo "  ${PASS}: RFM is disabled (full functionality)"
+elif [[ "${RFM_OUTPUT}" == *"rfm-state=true"* ]]; then
+	echo "  ${FAIL}: RFM is ENABLED (reduced functionality)"
+	echo "         The sensor cannot fully protect this system."
+	echo "         Check kernel compatibility and BPF backend status."
+	ERRORS=$((ERRORS + 1))
+else
+	echo "  ${WARN}: Unable to determine RFM state"
+	echo "         ${RFM_OUTPUT}"
+fi
+
+RFM_REASON=$("${FALCONCTL}" -g --rfm-reason 2>&1) || true
+if [[ "${RFM_REASON}" == *"rfm-reason="* && "${RFM_REASON}" != *"rfm-reason=\"\"" ]]; then
+	echo "  INFO: ${RFM_REASON}"
+fi
+echo ""
+
+# Check backend mode.
+echo "--- Backend ---"
+BACKEND_OUTPUT=$("${FALCONCTL}" -g --backend 2>&1) || true
+if [[ "${BACKEND_OUTPUT}" == *"backend=bpf"* ]]; then
+	echo "  ${PASS}: Using BPF backend (recommended for NixOS)"
+elif [[ "${BACKEND_OUTPUT}" == *"backend="* ]]; then
+	echo "  ${WARN}: ${BACKEND_OUTPUT}"
+	echo "         BPF backend is recommended for NixOS."
+else
+	echo "  ${WARN}: Unable to determine backend"
+fi
+echo ""
+
+# Check maintenance (tamper) protection status. Sensor 7.38+ arms this
+# while running when console policy enables it. An armed sensor blocks
+# stop, restart, and in-place updates.
+echo "--- Maintenance Protection ---"
+PROTECTION_OUTPUT=$("${FALCONCTL}" -g --protection-status 2>&1 | grep -i 'Maintenance Protection' || true)
+if [[ "${PROTECTION_OUTPUT}" == *"Armed=True"* ]]; then
+	echo "  ${INFO}: ${PROTECTION_OUTPUT}"
+	echo "         The running sensor blocks stop, restart, and in-place"
+	echo "         updates. Disarm with the maintenance token, or disable"
+	echo "         the service and reboot, before falcon-sensor-install."
+elif [[ -n "${PROTECTION_OUTPUT}" ]]; then
+	echo "  ${INFO}: ${PROTECTION_OUTPUT}"
+else
+	echo "  ${WARN}: Unable to determine protection status"
+fi
+echo ""
+
+# Report a staged update awaiting the next boot.
+echo "--- Staged Update ---"
+STAGE_DIR="/opt/CrowdStrike.staged"
+if [[ -f "${STAGE_DIR}/.stage-complete" ]]; then
+	STAGED_VERSION=$(cat "${STAGE_DIR}/.staged-version" 2>/dev/null || echo unknown)
+	echo "  ${INFO}: Update to ${STAGED_VERSION} is staged"
+	echo "         It is applied at the next boot, before the sensor starts."
+elif [[ -d "${STAGE_DIR}" ]]; then
+	echo "  ${WARN}: Incomplete stage at ${STAGE_DIR}"
+	echo "         Re-run: falcon-sensor-install"
+else
+	echo "  ${INFO}: No update staged"
+fi
+echo ""
+
+# Check tags.
+echo "--- Tags ---"
+TAGS_OUTPUT=$("${FALCONCTL}" -g --tags 2>&1) || true
+if [[ "${TAGS_OUTPUT}" == *"tags="* ]]; then
+	echo "  INFO: ${TAGS_OUTPUT}"
+else
+	echo "  INFO: No tags configured"
+fi
+echo ""
+
+# Check systemd service status.
+echo "--- Service Status ---"
+if systemctl is-active --quiet falcon-sensor; then
+	echo "  ${PASS}: falcon-sensor.service is active"
+else
+	STATE=$(systemctl is-active falcon-sensor 2>&1) || true
+	echo "  ${FAIL}: falcon-sensor.service is ${STATE}"
+	ERRORS=$((ERRORS + 1))
+	# An armed sensor survives unit stops and restarts, which leaves the
+	# unit dead while falcond keeps running detached from systemd.
+	if pgrep -x falcond >/dev/null; then
+		echo "         falcond is running outside systemd's control (split-brain)."
+		echo "         Reboot the host to restore normal supervision."
+	fi
+fi
+
+if systemctl is-enabled --quiet falcon-sensor; then
+	echo "  ${PASS}: falcon-sensor.service is enabled"
+else
+	echo "  ${WARN}: falcon-sensor.service is not enabled"
+fi
+echo ""
+
+# Check log file.
+# Falcon's own startup logic recreates /var/log/falconctl.log as a
+# symlink to /dev/stdout on every service start. systemd captures that
+# output to the journal, so a symlink to /dev/stdout is the expected,
+# healthy state and not a warning. Anything else is genuinely unusual.
+echo "--- Log File ---"
+if [[ -L /var/log/falconctl.log ]]; then
+	target="$(readlink /var/log/falconctl.log)"
+	if [[ "${target}" == "/dev/stdout" ]]; then
+		echo "  ${INFO}: /var/log/falconctl.log -> /dev/stdout (expected)"
+		echo "         Falcon recreates this symlink at service start;"
+		echo "         all output is captured by journald."
+		echo "         View with: journalctl -u falcon-sensor"
+	else
+		echo "  ${WARN}: /var/log/falconctl.log is a symlink to an unexpected target"
+		echo "         Target: ${target}"
+	fi
+elif [[ -f /var/log/falconctl.log ]]; then
+	echo "  ${PASS}: /var/log/falconctl.log exists as a regular file"
+else
+	echo "  ${WARN}: /var/log/falconctl.log does not exist"
+fi
+echo ""
+
+# Summary.
+echo "===================================="
+if [[ "${ERRORS}" -eq 0 ]]; then
+	echo " All checks passed"
+else
+	echo " ${ERRORS} check(s) failed"
+fi
+echo "===================================="
+exit "${ERRORS}"

@@ -27,6 +27,13 @@
       url = "github:Mic92/sops-nix";
       inputs.nixpkgs.follows = "nixpkgs";
     };
+
+    # Kolide's own packaging of their launcher, providing both the package and a
+    # NixOS module. Deliberately NOT following our nixpkgs: they pin and test
+    # against their own (currently nixos-26.05, the same release), and for a
+    # compliance agent their tested combination is worth more than deduplicating
+    # one nixpkgs eval.
+    kolide-launcher.url = "github:kolide/nix-agent/main";
   };
 
   outputs =
@@ -38,6 +45,7 @@
       home-manager,
       disko,
       sops-nix,
+      kolide-launcher,
       ...
     }:
     let
@@ -74,7 +82,11 @@
           nixos-hardware.nixosModules.dell-xps-13-9320
         ];
 
-        kynes = mkHost "kynes" [ ];
+        kynes = mkHost "kynes" [
+          # Provides services.kolide-launcher, which modules/work/policy.nix
+          # configures. A host enabling fleet.policy must have this module.
+          kolide-launcher.nixosModules.kolide-launcher
+        ];
       };
 
       formatter.${system} = nixpkgs.legacyPackages.${system}.nixfmt-rfc-style;
