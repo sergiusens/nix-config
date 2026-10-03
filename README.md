@@ -116,6 +116,93 @@ nixos-rebuild switch --flake .#kynes --target-host root@kynes.atreides --fast
 walk over to, prefer [deploy-rs](https://github.com/serokell/deploy-rs), whose magic
 rollback reverts a config that breaks its own connectivity after 30 seconds.
 
+## gthumb / Reflect
+
+`../gthumb` is a personal fork of gThumb 4 on branch `reflect` — a NAS-backed proxy tree
+with provenance, XMP-first metadata, card ingest and a narrow Immich integration. It now
+carries its own `flake.nix` and `nix/package.nix`, and **builds cleanly**:
+
+```bash
+cd ../gthumb
+nix build .#gthumb-reflect     # -> gthumb-reflect-4.0.rc
+nix develop                    # full build environment
+```
+
+Dependency versions in nixpkgs 26.05 clear every floor meson asks for: gtk4 4.22.4
+(needs ≥ 4.18.5), libadwaita 1.9.3 (≥ 1.8.0), exiv2 0.28.9 (≥ 0.28), libraw 0.22.1
+(≥ 0.22), libportal 0.9.1 (≥ 0.9). The package installs two binaries — `gthumb` and the
+`reflect` CLI — plus the desktop entry, icons, metainfo and GSettings schemas (nixpkgs
+relocates those to `share/gsettings-schemas/…`, which `wrapGAppsHook4` puts on
+`XDG_DATA_DIRS`).
+
+`developer-mode` is **off**: upstream's `meson.options` says it "loads some resources from
+the source tree", which a store-built package must never do. The cost is that the desktop
+entry installs as `org.gnome.gthumb`, the same ID as upstream gthumb, so don't install
+both. Turn `developerMode = true` on for the separate `-devel` entry and icon if you want
+them side by side.
+
+Worth noting what this replaces. The fork's own `AGENTS.md` describes building inside
+`distrobox enter gthumb-dev` because Bluefin is immutable and lacks `-devel` packages, then
+running on the host with
+
+    GSETTINGS_SCHEMA_DIR="$PWD/build/data/schemas:/usr/share/glib-2.0/schemas" ./build/src/gthumb
+
+because `meson devenv` narrows the schema path and every application gThumb launches
+inherits it — Ansel dies on a missing `org.gtk.Settings.FileChooser`. On NixOS none of that
+applies: `nix develop` is the build environment, and a packaged build has its schemas and
+its children's schemas wired correctly.
+
+It is **not** wired into `nixosConfigurations` yet, because the fork exists only on this
+machine — its git remote is still upstream GNOME. `flake.nix` carries the commented input
+and overlay line to uncomment once the branch is pushed somewhere.
+
+## Adding a new machine
+
+The point of the fleet layout. A new laptop is:
+
+1. `cp -r hosts/leto hosts/<name>` — take a name from the reserved list in HOSTNAMES.md
+   and keep the all-distinct-first-letters rule.
+2. Adjust the hardware: check whether `nixos-hardware` has a module for the exact model
+   (it did not for the XPS 13 Plus 9320), otherwise keep the generic laptop profiles.
+   Drop `ipu6-camera.nix` unless the new machine has the same Intel MIPI camera, and swap
+   `intel-graphics.nix` if it is AMD.
+3. Add one line to `nixosConfigurations` in `flake.nix`.
+4. Install over SSH from any booted installer:
+   `nixos-anywhere --flake .#<name> --target-host root@<ip>` — disko partitions, NixOS
+   installs, the config applies, in one command.
+
+Everything shared comes free: the common baseline, Hyprland, the laptop profile, printing,
+and the whole of home-manager. You can build the closure before the hardware arrives.
+
+Four things are **not** automatic:
+
+- **Secrets re-keying.** sops age keys are per-host, derived from the SSH host key. A new
+  machine needs its key added to `.sops.yaml` and then
+  `sops updatekeys secrets/policy.yaml`. This is the step that gets forgotten, and the
+  symptom is a confusing activation failure.
+- **Falcon and Kolide re-enrollment** on `kynes`-like hosts. The CID is unchanged but
+  device identity is per-host: `gh auth login && falcon-sensor-install`, and Kolide
+  enrolls afresh.
+- **`system.stateVersion`** should be the release you install, not copied from leto.
+- **Data.** Nix moves none of it. See below.
+
+## Backups: verify them before trusting them
+
+While porting the Déjà Dup configuration, the old settings turned out to have
+`/var/home/sergiusens` — the whole home directory — in `exclude-list`, while
+`include-list` is `['$HOME']`. Excludes generally win in duplicity, which would mean the
+backups contain approximately nothing. The last run also completed in 88 seconds
+(23:20:50 -> 23:22:18), which is not plausible for a 506 GB home.
+
+`home/sergiusens/deja-dup.nix` does not reproduce that exclude and explains why. **Check
+that the existing backups actually contain files**, independently of this migration — it
+matters far more than the migration does, and it is what you would be relying on when a
+new machine arrives.
+
+The target is `smb://angrenost.great-torino.ts.net/cuivienen`: over Tailscale, so it works
+away from home, but the share is still named for the old hostname and wants renaming to
+`leto`.
+
 ## Caveats worth reading before you commit to this
 
 ### Colour management, for a photo machine

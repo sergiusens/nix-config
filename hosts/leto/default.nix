@@ -80,17 +80,36 @@
 
   # ------------------------------------------------------------------ packages --
   environment.systemPackages = with pkgs; [
-    # Photo workflow. rapid-photo-downloader is the one carried over from the
-    # Bluefin image, where it came from a COPR.
-    rapid-photo-downloader
-    darktable
-    gimp
+    # --- photo workflow ---------------------------------------------------
+    # These four are one pipeline: ingest from the card, organise and cull,
+    # then develop. gthumb is the fork in ../gthumb ("Reflect"), packaged
+    # separately — see modules/desktop/gthumb.nix.
+    rapid-photo-downloader # card ingest; came from a COPR on bluefin-xp
+    ansel # darktable fork; the Reflect fork reads its database
+    rapidraw # second raw developer; Reflect records rapidraw_export provenance
     exiftool
     imagemagick
 
-    # Were flatpak preinstalls on the Bluefin image; both are in nixpkgs.
-    localsend
-    nextcloud-client
+    # --- agents -----------------------------------------------------------
+    claude-code
+    # herdr is a terminal MULTIPLEXER for coding agents, not an agent: it
+    # detects claude-code, codex, amp and others and shows each pane as
+    # blocked/working/done/idle. It runs claude-code rather than replacing it.
+    # Configured declaratively in home/sergiusens/herdr.nix.
+    herdr
+    claude-desktop # from the flake input; see the caveat in flake.nix
+
+    # --- desktop ----------------------------------------------------------
+    helix # editor
+    newsflash # RSS
+    papers # the GTK4 document viewer that replaced Evince
+    deja-dup # backups; configured in home/sergiusens/deja-dup.nix
+    ticketbooth # film and TV tracker
+    telegram-desktop
+    slack # unfree
+    luanti # also self-hosted on thufir
+    localsend # was a flatpak preinstall on bluefin-xp
+    nextcloud-client # likewise
   ];
 
   networking.firewall = {

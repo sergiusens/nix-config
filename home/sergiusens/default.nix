@@ -1,6 +1,10 @@
 { pkgs, ... }:
 {
-  imports = [ ./hyprland.nix ];
+  imports = [
+    ./hyprland.nix
+    ./herdr.nix
+    ./deja-dup.nix
+  ];
 
   home.username = "sergiusens";
   # NOTE: NixOS uses /home, not the /var/home that ostree-based Bluefin used.

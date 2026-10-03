@@ -34,6 +34,34 @@
     # compliance agent their tested combination is worth more than deduplicating
     # one nixpkgs eval.
     kolide-launcher.url = "github:kolide/nix-agent/main";
+
+    # herdr: agent-aware terminal multiplexer. Upstream ships its own flake and
+    # nix/ directory, so there is nothing to package here. Not following our
+    # nixpkgs: it pins a Rust toolchain through rust-overlay, and that pin is
+    # the combination upstream tests.
+    herdr.url = "github:herdrdev/herdr";
+
+    # Unofficial Nix packaging of Anthropic's OFFICIAL Claude Desktop Linux beta,
+    # built from their Debian repository rather than repackaging the Windows or
+    # macOS release. NOTE: a small single-maintainer flake with a bot committing
+    # hash updates. That is a supply-chain surface on a machine carrying
+    # corporate EDR -- consider vendoring its pkgs/claude-desktop into this repo
+    # and bumping it deliberately instead.
+    claude-desktop.url = "github:poeck/claude-desktop-nix-flake";
+
+    # The gThumb 4 fork in ../gthumb ("Reflect"), which now carries its own
+    # flake.nix and nix/package.nix. Left commented because the fork lives only
+    # on this machine: its git remote is still upstream GNOME, so there is no
+    # URL to pin. A path: input would hardcode an absolute path and pin a dirty
+    # tree, which is worse than building it by hand.
+    #
+    # Push the `reflect` branch somewhere, then uncomment both this and the
+    # overlay line below to get pkgs.gthumb-reflect:
+    #
+    #   gthumb-reflect.url = "git+https://gitlab.gnome.org/sergiusens/gthumb?ref=reflect";
+    #
+    # Until then, build and run it directly:
+    #   cd ../gthumb && nix build .#gthumb-reflect && ./result/bin/gthumb
   };
 
   outputs =
@@ -46,16 +74,27 @@
       disko,
       sops-nix,
       kolide-launcher,
+      herdr,
+      claude-desktop,
       ...
     }:
     let
       system = "x86_64-linux";
 
-      unstableOverlay = _final: _prev: {
+      # pkgs.unstable.<name> for anything that must track the bleeding edge,
+      # plus the two packages that come from flake inputs rather than nixpkgs,
+      # surfaced as ordinary attributes so hosts need no knowledge of origin.
+      extraPackagesOverlay = _final: _prev: {
         unstable = import nixpkgs-unstable {
           inherit system;
           config.allowUnfree = true;
         };
+
+        herdr = herdr.packages.${system}.default;
+        claude-desktop = claude-desktop.packages.${system}.claude-desktop;
+
+        # See the gthumb-reflect note in inputs above.
+        # inherit (gthumb-reflect.packages.${system}) gthumb-reflect;
       };
 
       # hostName is threaded through specialArgs so modules/common can set
@@ -66,7 +105,7 @@
           inherit system;
           specialArgs = { inherit inputs hostName; };
           modules = [
-            { nixpkgs.overlays = [ unstableOverlay ]; }
+            { nixpkgs.overlays = [ extraPackagesOverlay ]; }
             home-manager.nixosModules.home-manager
             disko.nixosModules.disko
             sops-nix.nixosModules.sops
