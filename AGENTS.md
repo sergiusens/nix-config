@@ -5,29 +5,21 @@ laptops, a home server, and a NAS appliance.
 
 ## Status
 
-**Pre-baseline.** This repository currently contains documentation only — no `flake.nix`,
-no host modules, no Nix code yet.
+A flake with two host configurations, shared modules, and home-manager. Neither host
+has been built or booted yet.
 
 Flakes only see files git **tracks**, so `git add` a new file before expecting
 `nix build`, `nixos-rebuild --flake`, or any flake evaluation to find it. An untracked
 `flake.nix` fails with a confusing "does not provide attribute" rather than a missing-file
 error.
 
-Every machine in the fleet runs a **bootc / Universal Blue** image today, built by the
-separate `bluefin-xp` repository (`../bluefin-xp`), not NixOS. That repo is the reference
-for what each host actually does: per-host build scripts, quadlet container units,
-systemd mounts, and `ujust` recipes.
+`bluefin-xp` (`../bluefin-xp`) is the reference for what each host actually does:
+per-host build scripts, quadlet container units, systemd mounts, and `ujust` recipes.
+Translate from it rather than copying, and mind the hostname migration map.
 
-One decision is still open and blocks the shape of the baseline:
-
-- **Full NixOS hosts** — replace bootc entirely. Highest leverage, but `kynes` loses the
-  CrowdStrike Falcon and Kolide packaging that currently depends on RPM and SELinux
-  equivalency rules.
-- **Nix + home-manager layered on Bluefin** — keep bootc for the OS, manage packages and
-  dotfiles declaratively on top.
-- **Split** — NixOS on `thufir`, where it buys the most, and Nix-on-Bluefin elsewhere.
-
-Do not pick one unilaterally.
+**Decided:** `leto` and `kynes` become full NixOS hosts, with **Hyprland** replacing
+GNOME. The other five machines stay on bootc for now. Nothing in this repo has been
+evaluated — Nix is not installed on `leto`. See README.md.
 
 ## Hostnames
 
@@ -48,6 +40,19 @@ When working in this repo:
 - `bluefin-xp` still uses the old Tolkien names (`cuivienen`, `eregion`, `lindon`,
   `orthanc`, `angrenost`). HOSTNAMES.md has the migration map. Translate when porting;
   do not copy old names forward.
+
+## Desktop conventions
+
+- **Hyprland**, not GNOME. The compositor, greeter (`greetd` + `tuigreet`) and portals are
+  system-level in `modules/desktop/hyprland.nix`; appearance, input and keybinds are
+  per-user in `home/sergiusens/hyprland.nix`. Do not install Hyprland twice — the
+  home-manager module sets `package = null` on purpose.
+- **Ghostty** is the terminal. `foot` is installed alongside as a rescue terminal on a
+  separate keybind, sharing none of Ghostty's GPU/GTK dependencies.
+- The keyboard is **`latam`**. Hyprland does not read `services.xserver.xkb`, so the
+  layout must be set in the compositor's own `input.kb_layout` as well.
+- `leto` is a **laptop** (Dell XPS 13 Plus 9320), not a desktop, despite being the
+  photo workstation.
 
 ## Secrets
 

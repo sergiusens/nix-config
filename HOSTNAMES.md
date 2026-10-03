@@ -20,13 +20,15 @@ Angrenost). Continuity with it was deliberately dropped.
 
 | Host | Machine | Base image today | Role |
 | --- | --- | --- | --- |
-| `leto` | desktop | `ghcr.io/ublue-os/bluefin-dx:stable` | Photo workstation — Intel OpenCL, rapid-photo-downloader, HPLIP scanner, podman.socket |
-| `kynes` | laptop | `ghcr.io/ublue-os/bluefin-dx:stable` | Work laptop — Chrome, CrowdStrike Falcon, Kolide launcher |
+| `leto` | laptop (Dell XPS 13 Plus 9320) | **NixOS** (was `bluefin-dx:stable`) | Photo workstation — Intel Iris Xe + OpenCL, rapid-photo-downloader, HPLIP scanner, podman |
+| `kynes` | laptop | **NixOS** (was `bluefin-dx:stable`) | Work laptop — Chrome, CrowdStrike Falcon, Kolide launcher |
 | `jessica` | laptop | `ghcr.io/ublue-os/bluefin:stable` | Wife's laptop — Chrome, CrossOver via distrobox, HPLIP |
 | `duncan` | laptop | — (new) | Son's laptop |
 | `gurney` | laptop | — (new) | Son's laptop |
 | `thufir` | server | `ghcr.io/ublue-os/ucore:stable` | Immich, AdGuard Home (DNS), FreshRSS, Luanti, Tailscale. Static `192.168.0.100` |
 | `shadout` | NAS | — (appliance) | NFS bulk storage, `192.168.0.101`. Exports `/orthanc`, mounted by `thufir` at `/var/mnt/nas` |
+
+`leto` and `kynes` are migrating to NixOS (see README.md); the rest remain on bootc.
 
 Domain / tailnet: **`atreides`** — every host is a member of the house, e.g.
 `thufir.atreides`, `jessica.atreides`.
