@@ -5,7 +5,7 @@
 #
 # Hardware quirks come from nixos-hardware's dell-xps-13-9320 module, wired up
 # in flake.nix rather than imported here.
-{ pkgs, ... }:
+{ lib, pkgs, ... }:
 {
   imports = [
     ./disko.nix
@@ -118,6 +118,36 @@
   # messaging hosts and the desktop integration that a plain systemPackages
   # entry does not.
   programs.firefox.enable = true;
+
+  # ---------------------------------------------------------------- VM variant --
+  # Applies ONLY to `nix build .#nixosConfigurations.leto.config.system.build.vm`,
+  # never to the installed system — virtualisation.vmVariant is a separate
+  # configuration layered on top for the VM build alone.
+  #
+  # The real config deliberately sets no password (see modules/common), which
+  # would leave the VM stuck at the greeter with no way in. These throwaway
+  # credentials make the greeter testable. They are plaintext in the store,
+  # which is exactly why they live here and not in the real configuration.
+  virtualisation.vmVariant = {
+    users.users.sergiusens.initialPassword = "vm";
+    users.users.root.initialPassword = "vm";
+
+    virtualisation = {
+      memorySize = 4096;
+      cores = 4;
+      diskSize = 16384;
+      # Enough room for ReGreet and Hyprland to be judged honestly.
+      resolution = {
+        x = 1920;
+        y = 1200;
+      };
+    };
+
+    # The host's camera, printer and backup target do not exist in a VM, and
+    # the ipu6 stack builds an out-of-tree kernel module for no purpose here.
+    hardware.ipu6.enable = lib.mkForce false;
+    services.printing.enable = lib.mkForce false;
+  };
 
   networking.firewall = {
     # LocalSend needs these to discover and receive from phones on the LAN.
