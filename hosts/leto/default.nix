@@ -115,8 +115,19 @@
     slack # unfree
     luanti # also self-hosted on thufir
     localsend # was a flatpak preinstall on bluefin-xp
-    nextcloud-client # likewise
   ];
+
+  # NOTE: nextcloud-client was removed. It was carried over from bluefin-xp's
+  # flatpak preinstall list rather than requested, like darktable and gimp
+  # before it. It also starts itself unprompted: the package ships a D-Bus
+  # activatable service (com.nextcloudgmbh.Nextcloud -> `nextcloud
+  # --background`) together with Nautilus/Caja/Dolphin extensions whose job is
+  # to talk to it, so merely having it installed is enough for something to
+  # activate it.
+  #
+  # To bring it back without the surprise, add the package and mask the
+  # activation by shadowing the .service file in share/dbus-1/services, or just
+  # launch it deliberately from the launcher.
 
   # programs.firefox rather than the bare package: it wires up policies, native
   # messaging hosts and the desktop integration that a plain systemPackages
