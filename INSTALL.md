@@ -46,8 +46,18 @@ podman run --rm --name leto-vm --device /dev/kvm --security-opt label=disable \
 Then from the host:
 
 ```bash
-remote-viewer vnc://localhost:5900     # virt-viewer is already installed on Bluefin
+remote-viewer vnc://127.0.0.1:5900     # virt-viewer is already installed on Bluefin
 podman stop leto-vm                    # when done
+```
+
+**Use `127.0.0.1`, not `localhost`.** `localhost` resolves to `::1` first, and podman's
+rootless pasta networking forwards only IPv4, so the v6 attempt is reset and the client
+reports "Unable to read from server" even though QEMU is listening perfectly well. Check
+the server directly if in doubt — a healthy one answers with its handshake banner:
+
+```bash
+python3 -c 'import socket;s=socket.create_connection(("127.0.0.1",5900),4);print(s.recv(32))'
+# -> b'RFB 003.008\n'
 ```
 
 `/dev/kvm` is world-writable on Bluefin, so no group membership is needed. The qcow2 lands
