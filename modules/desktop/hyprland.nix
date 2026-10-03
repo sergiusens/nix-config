@@ -4,6 +4,33 @@
 # session utilities. Per-user appearance and keybinds live in
 # home/sergiusens/hyprland.nix.
 { pkgs, ... }:
+let
+  # The Hyprland package installs TWO session entries:
+  #   hyprland-uwsm.desktop  "Hyprland (uwsm-managed)"  -> uwsm start ...
+  #   hyprland.desktop       "Hyprland"                 -> start-hyprland
+  #
+  # Only the uwsm one is correct here. home/sergiusens/hyprland.nix launches
+  # everything through `uwsm app --` — waybar, mako, hyprpaper, the terminal
+  # keybinds — and outside a uwsm-managed session those calls fail, leaving a
+  # bare compositor with no bar, no notifications and a dead Super+Return.
+  #
+  # ReGreet picks the FIRST session file it finds with a given name and respects
+  # NoDisplay, so an earlier SESSION_DIRS entry shadowing hyprland.desktop hides
+  # the trap without patching the Hyprland package. Exec is kept valid anyway,
+  # so nothing breaks if some other consumer ever reads this copy.
+  #
+  # Only ReGreet sees this directory; uwsm resolves hyprland.desktop through
+  # XDG_DATA_DIRS and still finds the real one.
+  hiddenSessions = pkgs.writeTextDir "share/wayland-sessions/hyprland.desktop" ''
+    [Desktop Entry]
+    Name=Hyprland (bare — use the uwsm session instead)
+    Comment=Hidden deliberately; see modules/desktop/hyprland.nix
+    Exec=${pkgs.hyprland}/bin/start-hyprland
+    Type=Application
+    DesktopNames=Hyprland
+    NoDisplay=true
+  '';
+in
 {
   programs.hyprland = {
     enable = true;
@@ -80,7 +107,10 @@
   # by hand, so `uwsm start hyprland-uwsm.desktop` always gets you in.
   #
   # VERIFY on first boot that Hyprland appears in the session dropdown.
-  systemd.services.greetd.environment.SESSION_DIRS = "/run/current-system/sw/share/wayland-sessions";
+  # hiddenSessions comes first so its NoDisplay copy of hyprland.desktop wins,
+  # leaving only "Hyprland (uwsm-managed)" in the dropdown.
+  systemd.services.greetd.environment.SESSION_DIRS =
+    "${hiddenSessions}/share/wayland-sessions:/run/current-system/sw/share/wayland-sessions";
 
   # Keeps the greeter from being scribbled over by kernel messages.
   boot.kernelParams = [ "quiet" ];

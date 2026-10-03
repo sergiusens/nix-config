@@ -11,6 +11,28 @@
     package = null;
     portalPackage = null;
 
+    # ######################### DO NOT DROP THIS LINE #########################
+    # home-manager defaults configType by stateVersion: "hyprlang" below 26.05,
+    # "lua" at 26.05 and above. Our stateVersion is 26.05, so without this the
+    # module writes ~/.config/hypr/hyprland.lua — and everything below is
+    # hyprlang syntax. The symptom is Hyprland booting into emergency mode with
+    # "A lua config error resulted in no binds being registered" and
+    # "<name> expected near '$'", because `$mod = SUPER` is not valid Lua.
+    #
+    # (If that ever happens, the emergency binds are SUPER+Q for a terminal,
+    # SUPER+R for hyprland-run and SUPER+M to exit.)
+    #
+    # hyprlang still works and is still supported; it is simply the legacy
+    # format now. Migrating to Lua is a real rewrite, not a translation:
+    #   $mod = "SUPER"            ->  mod = { _var = "SUPER"; };
+    #   general/decoration/input  ->  nested under `config`
+    #   bind = [ "$mod, Q, ..." ] ->  bind = [ { _args = [ ... ]; } ] with
+    #                                 hl.dsp.* dispatchers in mkLuaInline
+    #   exec-once                 ->  on = { _args = [ "hyprland.start" fn ]; }
+    # Worth doing deliberately, with the Hyprland Lua API to hand.
+    # #########################################################################
+    configType = "hyprlang";
+
     settings = {
       # ------------------------------------------------------------- monitors --
       # XPS 13 Plus 9320 ships in FHD+ (1920x1200), OLED 3.5K (3456x2160) and
