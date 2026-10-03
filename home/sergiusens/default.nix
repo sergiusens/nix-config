@@ -148,11 +148,15 @@
   };
 
   # ------------------------------------------------------------------- tooling --
+  # home-manager renamed userName/userEmail/extraConfig into a single freeform
+  # `settings` attrset that mirrors git config structure directly.
   programs.git = {
     enable = true;
-    userName = "Sergio Enrique Schvezov";
-    userEmail = "sergiusens@gmail.com";
-    extraConfig = {
+    settings = {
+      user = {
+        name = "Sergio Enrique Schvezov";
+        email = "sergiusens@gmail.com";
+      };
       init.defaultBranch = "main";
       pull.rebase = true;
       push.autoSetupRemote = true;

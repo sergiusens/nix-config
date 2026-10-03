@@ -26,29 +26,61 @@ modules/work/                CrowdStrike and Kolide stubs (disabled, untested)
 home/sergiusens/             home-manager: ghostty, waybar, Hyprland keybinds
 ```
 
-## Nothing here has been built
+## Evaluates, but has never been built or booted
 
-**No part of this has been evaluated, let alone booted.** Nix is not installed on `leto`,
-so not one line has been through `nix eval`. Expect option-name drift against the pinned
-nixpkgs — NixOS renames options between releases and several used here are recent
-(`hardware.graphics`, `services.logind.settings`, `nerd-fonts.*`).
+Both host configurations now evaluate to a derivation with no warnings beyond the
+deliberate placeholder notice on `kynes`:
 
-First thing to do, from any machine with Nix:
-
-```bash
-nix flake check
-nix eval .#nixosConfigurations.leto.config.system.build.toplevel.drvPath
+```
+leto  → nixos-system-leto-26.05.20261002.774debe.drv
+kynes → nixos-system-kynes-26.05.20261002.774debe.drv
 ```
 
-Fix what that surfaces before trusting anything below.
+`kynes` was also evaluated separately with `fleet.policy.enable = true`, on a throwaway
+copy, since with the flag off the entire Falcon module, Kolide wiring and sops declarations
+are never evaluated at all. That path is clean too.
 
-Two specific things to verify:
+So the module structure, option names and all six flake inputs are sound, and `leto`'s
+evaluation confirms nixpkgs really does have the `services.v4l2-relayd` module that
+`hardware.ipu6` depends on. It does **not** mean anything works: nothing has been built,
+installed or booted. Evaluation cannot tell you whether the out-of-tree `ipu6-drivers`
+compiles against the kernel, whether the camera captures a frame, or whether the sensor
+reports in.
 
-- **`nixos-hardware.nixosModules.dell-xps-13-9320`** — the attribute name is assumed, not
-  confirmed. Check `nixos-hardware`'s flake outputs; it may be spelled differently or not
-  exist for the 9320.
-- **`home-manager/release-26.05`** — assumed to track the nixpkgs release. Adjust if that
-  branch doesn't exist yet.
+Nix cannot be installed on `leto` as it stands: Bluefin's `/` is read-only composefs, so
+`/nix` cannot be created, and Nix needs that exact path because store paths are absolute
+and baked into every binary. Homebrew does not help — there is no `nix` formula or cask,
+only Nix *tooling* (`nixfmt`, `alejandra`, `statix`).
+
+Evaluate in a container instead, which needs nothing installed:
+
+```bash
+podman run --rm --security-opt label=disable -v "$PWD":/work -w /work docker.io/nixos/nix \
+  sh -lc 'export NIX_CONFIG="experimental-features = nix-command flakes";
+          nix flake lock /work
+          nix eval --raw /work#nixosConfigurations.leto.config.system.build.toplevel.drvPath'
+```
+
+Rootless podman maps container root to your own UID, so a `flake.lock` written this way is
+owned by you. Use `-v "$PWD":/work:ro` plus `path:/work` for a read-only check, but note
+that Nix then cannot write the lock file and will fail if one is missing.
+
+If you want Nix on a bootc host permanently, the route is to bake `/nix` into the image
+(you build `bluefin-xp`, so `RUN mkdir -p /nix` plus a systemd mount unit binding writable
+storage over it) — but that is wasted effort for `leto`, which is being converted to NixOS
+anyway. It only earns its keep on the five machines staying on bootc.
+
+Fix what the evaluation surfaces before trusting anything below.
+
+Fixed during the first evaluation, recorded so they are not reintroduced:
+
+- **There is no `dell-xps-13-9320` in nixos-hardware.** The XPS 13 family stops at
+  9315/9310/9350. Rather than borrow a neighbouring model's quirks, `flake.nix` composes
+  `common-cpu-intel` + `common-pc-laptop` + `common-pc-laptop-ssd`.
+- `pkgs.greetd.tuigreet` → `pkgs.tuigreet`
+- `noto-fonts-emoji` → `noto-fonts-color-emoji`
+- home-manager's `programs.git.userName`/`userEmail`/`extraConfig` → one freeform
+  `programs.git.settings` attrset mirroring git's own config structure
 
 ## Installing
 
@@ -126,6 +158,26 @@ One consequence worth knowing: `ipu6-drivers` is an **out-of-tree kernel module*
 must build against whichever kernel the host runs. That is why `modules/common` does not
 pin `linuxPackages_latest` — an out-of-tree module that fails to build takes the whole
 rebuild with it, and the usual symptom is "my camera broke after an update".
+
+### There is no fingerprint reader
+
+Checked on the running machine: `fprintd-list` reports "No devices available", and nothing
+in `lsusb` resembles a fingerprint sensor — no Goodix (`27c6:*`), no Synaptics, no
+Validity. `fprintd` and `libfprint` are installed and idle because there is nothing to
+drive.
+
+The one non-obvious USB device, `8086:0b63` "USB Bridge", is a red herring: its driver is
+`ljca`, Intel's I2C/GPIO bridge, which is part of the *camera* plumbing — it carries the
+OV01A10's I2C and GPIO lines.
+
+On the XPS 13 Plus the reader sits in the power button and normally appears as a Goodix USB
+device. Its total absence — not even an unbound device — means either this SKU shipped
+without one or it is disabled in firmware; that cannot be distinguished from software, so
+check the BIOS setup screen. **Do not wire up `pam_fprintd` expecting it to work.**
+
+It does not work on Bluefin today either, so NixOS is not a regression here. If a `27c6:*`
+device does appear after a firmware change, the next question is libfprint support — Dell's
+newer Goodix match-on-chip sensors have patchy coverage.
 
 ### Suspend works, but only s2idle
 

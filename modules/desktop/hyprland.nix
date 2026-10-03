@@ -22,7 +22,7 @@
     enable = true;
     settings.default_session = {
       command = toString [
-        "${pkgs.greetd.tuigreet}/bin/tuigreet"
+        "${pkgs.tuigreet}/bin/tuigreet"
         "--time"
         "--remember"
         "--remember-user-session"

@@ -75,18 +75,34 @@
           ]
           ++ extraModules;
         };
+
+      # nixos-hardware has NO dell-xps-13-9320 module — the XPS 13 family there
+      # stops at 9315/9310/9350, and guessing a neighbouring model would apply
+      # quirks for different hardware. Compose the generic profiles instead:
+      #   common-cpu-intel      microcode, and imports common-gpu-intel, which
+      #                         drives hardware.intelgpu (see
+      #                         modules/hardware/intel-graphics.nix)
+      #   common-pc-laptop      only enables TLP when power-profiles-daemon is
+      #                         off, so it does not fight modules/profiles/laptop.nix
+      #   common-pc-laptop-ssd  SSD-appropriate defaults
+      laptopProfiles = [
+        nixos-hardware.nixosModules.common-cpu-intel
+        nixos-hardware.nixosModules.common-pc-laptop
+        nixos-hardware.nixosModules.common-pc-laptop-ssd
+      ];
     in
     {
       nixosConfigurations = {
-        leto = mkHost "leto" [
-          nixos-hardware.nixosModules.dell-xps-13-9320
-        ];
+        leto = mkHost "leto" laptopProfiles;
 
-        kynes = mkHost "kynes" [
-          # Provides services.kolide-launcher, which modules/work/policy.nix
-          # configures. A host enabling fleet.policy must have this module.
-          kolide-launcher.nixosModules.kolide-launcher
-        ];
+        kynes = mkHost "kynes" (
+          laptopProfiles
+          ++ [
+            # Provides services.kolide-launcher, which modules/work/policy.nix
+            # configures. A host enabling fleet.policy must have this module.
+            kolide-launcher.nixosModules.kolide-launcher
+          ]
+        );
       };
 
       formatter.${system} = nixpkgs.legacyPackages.${system}.nixfmt-rfc-style;
