@@ -12,9 +12,55 @@ nix build .#nixosConfigurations.leto.config.system.build.vm
 ./result/bin/run-leto-vm
 ```
 
+Log in as `sergiusens` / `vm`. Those credentials come from `virtualisation.vmVariant` in
+`hosts/leto/default.nix` and exist **only** in the VM — the installed system still has no
+password until you set one.
+
 The VM substitutes its own disk, so `disko.nix` is ignored and nothing on the host is
-touched. It cannot tell you anything about the camera, the GPU or suspend — those need
-real hardware.
+touched; `qemu-vm` neutralises the LUKS device and swapfile with `mkVMOverride`, so it
+will not stall in initrd. The VM variant also forces off the IPU6 camera stack and
+printing, neither of which exists in a VM.
+
+It cannot tell you anything about the camera, the GPU or suspend — those need real
+hardware.
+
+### Running it from Bluefin, which has no Nix
+
+`/nix` cannot exist on Bluefin's read-only root, so the build happens in a container
+(see README.md) and the VM's QEMU, kernel and initrd all live inside that container's
+store volume. The host cannot execute the runner directly. Run it in the container and
+take the display out over VNC:
+
+```bash
+mkdir -p ~/.cache/leto-vm
+VM=$(podman run --rm --security-opt label=disable -v nix-store:/nix -v "$PWD":/work -w /work \
+      docker.io/nixos/nix sh -lc 'export NIX_CONFIG="experimental-features = nix-command flakes";
+        nix build --no-link --print-out-paths /work#nixosConfigurations.leto.config.system.build.vm')
+
+podman run --rm --name leto-vm --device /dev/kvm --security-opt label=disable \
+  -p 5900:5900 -v nix-store:/nix -v ~/.cache/leto-vm:/vm -w /vm \
+  docker.io/nixos/nix \
+  sh -lc "QEMU_OPTS='-display vnc=0.0.0.0:0 -vga virtio' $VM/bin/run-leto-vm"
+```
+
+Then from the host:
+
+```bash
+remote-viewer vnc://localhost:5900     # virt-viewer is already installed on Bluefin
+podman stop leto-vm                    # when done
+```
+
+`/dev/kvm` is world-writable on Bluefin, so no group membership is needed. The qcow2 lands
+in `~/.cache/leto-vm`; delete it to start from a clean disk.
+
+### What to look for
+
+- ReGreet appears, legibly, at a sensible size — the whole reason it replaced tuigreet.
+- **Hyprland is in the session dropdown.** If the list is empty, the `SESSION_DIRS` fix in
+  `modules/desktop/hyprland.nix` did not take; type `uwsm start hyprland-uwsm.desktop`
+  by hand to get in, and the setting needs revisiting.
+- Super+Return opens Ghostty; Super+Shift+Return opens foot; Super+D opens fuzzel.
+- waybar is present, the keyboard is `latam`, and the theme is dark.
 
 ## Before you start
 
