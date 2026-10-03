@@ -111,10 +111,13 @@
       };
 
       # -------------------------------------------------------------- autostart --
+      # Only things home-manager does NOT already run belong here.
+      # waybar (programs.waybar.systemd.enable), mako (services.mako),
+      # hyprpaper (services.hyprpaper) and hypridle (services.hypridle) each
+      # get a systemd user unit bound to graphical-session.target, which uwsm
+      # starts. Launching them from exec-once as well gives you two of each —
+      # two bars being the visible symptom.
       exec-once = [
-        "uwsm app -- hyprpaper"
-        "uwsm app -- waybar"
-        "uwsm app -- mako"
         "systemctl --user start hyprpolkitagent"
         "wl-paste --watch cliphist store"
       ];

@@ -19,7 +19,11 @@
     settings = {
       font-family = "JetBrainsMono Nerd Font";
       font-size = 11;
-      theme = "catppuccin-mocha";
+      # Ghostty's bundled theme names are the upstream iTerm2-Color-Schemes
+      # names: capitalised, spaced. `catppuccin-mocha` does not exist and
+      # Ghostty opens a "Configuration Errors" dialog on every start.
+      # Full list: ls $(nix eval --raw .#…pkgs.ghostty)/share/ghostty/themes
+      theme = "Catppuccin Mocha";
 
       window-padding-x = 8;
       window-padding-y = 8;
