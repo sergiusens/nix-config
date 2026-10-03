@@ -101,6 +101,7 @@
 
     # --- desktop ----------------------------------------------------------
     fractal # Matrix client; complements telegram-desktop and slack
+    gnome-secrets # "Secrets": GNOME password manager, KeePass v4 format
     helix # editor
     newsflash # RSS
     papers # the GTK4 document viewer that replaced Evince
