@@ -6,21 +6,16 @@
 # host dconf — which is why `gsettings list-recursively` found nothing on the
 # host. Values below were read out of the running Flatpak.
 #
-# ########################### READ THIS ONE THING ###########################
-# The old exclude-list contained `/var/home/sergiusens` — the entire home
-# directory — while include-list is `['$HOME']`. Excludes generally win over
-# includes in duplicity, which would mean the backups have been covering
-# approximately nothing. Supporting evidence: the last run went from start to
-# finish in 88 seconds (23:20:50 -> 23:22:18), which is implausible for a
-# 506 GB home even incrementally.
+# The exclude-list contains $HOME itself alongside an include-list of $HOME.
+# That looks self-defeating, but the running configuration demonstrably backs up
+# and restores — Déjà Dup reports "Folders: Home (sergiusens)" and the archive
+# browses fine — so the entry is inert in practice. Most likely duplicity's
+# selection rules are first-match-wins and the include is reached first, but the
+# mechanism has not been confirmed.
 #
-# That blanket exclude is NOT reproduced below, on the assumption it was added
-# by accident through the folder picker. Everything else is faithful. If it was
-# deliberate, put it back — but then the include-list needs rethinking too.
-#
-# VERIFY YOUR BACKUPS ACTUALLY CONTAIN FILES before trusting them, independently
-# of this migration.
-# ###########################################################################
+# It is reproduced verbatim (path-translated) rather than cleaned up, because
+# this configuration is known to work and the point of porting it is to keep it
+# working. Do not "fix" it without testing a restore.
 {
   dconf.settings = {
     "org/gnome/deja-dup" = {
@@ -29,11 +24,13 @@
       include-list = [ "$HOME" ];
 
       # Paths rewritten from /var/home/sergiusens (ostree) to $HOME-relative
-      # form. Using $HOME rather than an absolute path means this survives a
-      # move to another machine or user name unchanged.
+      # form. Using $HOME rather than an absolute path means these survive a
+      # move to another machine or user name unchanged — including the $HOME
+      # entry itself, which on Bluefin read /var/home/sergiusens.
       exclude-list = [
         "$TRASH"
         "$DOWNLOAD"
+        "$HOME"
         "$HOME/.cache"
         "$HOME/.local/share/containers"
         "$HOME/Música"

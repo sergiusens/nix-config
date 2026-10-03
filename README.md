@@ -186,22 +186,22 @@ Four things are **not** automatic:
 - **`system.stateVersion`** should be the release you install, not copied from leto.
 - **Data.** Nix moves none of it. See below.
 
-## Backups: verify them before trusting them
+## Backups
 
-While porting the Déjà Dup configuration, the old settings turned out to have
-`/var/home/sergiusens` — the whole home directory — in `exclude-list`, while
-`include-list` is `['$HOME']`. Excludes generally win in duplicity, which would mean the
-backups contain approximately nothing. The last run also completed in 88 seconds
-(23:20:50 -> 23:22:18), which is not plausible for a 506 GB home.
+Déjà Dup was a Flatpak on Bluefin, so its settings lived in the sandbox keyfile at
+`~/.var/app/org.gnome.DejaDup/config/glib-2.0/settings/keyfile` rather than host dconf —
+which is why `gsettings list-recursively` finds nothing on the host.
+`home/sergiusens/deja-dup.nix` ports them to dconf verbatim, with paths rewritten
+`$HOME`-relative so they survive a move to another machine.
 
-`home/sergiusens/deja-dup.nix` does not reproduce that exclude and explains why. **Check
-that the existing backups actually contain files**, independently of this migration — it
-matters far more than the migration does, and it is what you would be relying on when a
-new machine arrives.
+The settings include `$HOME` in *both* include-list and exclude-list. That reads as
+self-defeating but the configuration demonstrably works, so the entry is inert in
+practice; it is reproduced rather than cleaned up. Don't "fix" it without testing a
+restore.
 
-The target is `smb://angrenost.great-torino.ts.net/cuivienen`: over Tailscale, so it works
-away from home, but the share is still named for the old hostname and wants renaming to
-`leto`.
+The target is `smb://angrenost.great-torino.ts.net/cuivienen`: over Tailscale, so backups
+work away from home, but the share is still named for the old hostname and wants renaming
+to `leto`.
 
 ## Caveats worth reading before you commit to this
 
