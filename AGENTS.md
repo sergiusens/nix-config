@@ -89,13 +89,23 @@ nix eval --raw .#nixosConfigurations.leto.config.home-manager.users.sergiusens\
   .xdg.configFile.\"hypr/hyprland.conf\".source
 ```
 
-Two caveats learned doing this:
+Three caveats, each learned the hard way:
 
+- **The stubs list LUA key names, which are not always the hyprlang spelling.** They are
+  normalised to underscores. `input.touchpad.tap_to_click` in the stubs is
+  `tap-to-click` in hyprlang, and "correcting" it to the stub spelling makes Hyprland
+  reject the option outright. Use the stubs to decide whether a setting still *exists*,
+  never to decide how to *spell* it in hyprlang. For spelling, check
+  `share/hypr/hyprland.lua` and the wiki, or simply believe an option that Hyprland is
+  not complaining about.
 - `bezier` and `animation` are hyprlang **keywords**, not config keys, so they are absent
   from the stubs and that is correct. Same for `bind`, `monitor`, `exec-once`, `gesture`.
 - Dispatchers are not config keys either. Check them against `hl.dsp.*` in the default
   Lua config: `togglesplit` is `hl.dsp.layout("togglesplit")`, i.e. `layoutmsg,
   togglesplit` in hyprlang, not a top-level dispatcher.
+
+Corollary: a config option Hyprland does **not** complain about is working. Do not go
+looking for silent failures that the stubs merely appear to imply.
 
 ## Vendored code
 

@@ -87,8 +87,12 @@
     rapid-photo-downloader # card ingest; came from a COPR on bluefin-xp
     ansel # darktable fork; the Reflect fork reads its database
     rapidraw # second raw developer; Reflect records rapidraw_export provenance
+    siril # astrophotography: registration, stacking, processing
     exiftool
     imagemagick
+
+    # --- video --------------------------------------------------------------
+    shotcut
 
     # --- agents -----------------------------------------------------------
     claude-code

@@ -52,9 +52,11 @@
         touchpad = {
           natural_scroll = true;
           disable_while_typing = true;
-          # Underscores, not hyphens: the valid key per Hyprland's own stubs
-          # (share/hypr/stubs/hl.meta.lua) is input.touchpad.tap_to_click.
-          tap_to_click = true;
+          # Hyphens here, NOT underscores. The stubs list the *Lua* key as
+          # input.touchpad.tap_to_click, but hyprlang spells this one
+          # tap-to-click; using the Lua spelling makes Hyprland reject it with
+          # "config option <input:touchpad:tap_to_click> does not exist".
+          tap-to-click = true;
         };
         sensitivity = 0;
       };
