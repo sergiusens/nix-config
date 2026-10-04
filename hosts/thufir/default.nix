@@ -77,7 +77,14 @@ in
       what = "${nasAddress}:/orthanc";
       where = "/var/mnt/nas";
       type = "nfs";
-      options = "_netdev,nfsvers=4,soft,timeo=100,retrans=3";
+      # nfsvers=3, NOT 4. Diagnosed on orthanc 2026-10-04: the QNAP answers
+      # NFS v2/v3/v4 and exports /orthanc to this host, TCP 2049 and 111 are
+      # reachable, and `showmount -e` works — but a v4.1 mount hangs
+      # indefinitely while a v3 mount completes instantly and lists the share.
+      # Wedged NFSv4 server-side state for this client; QNAP has a long history
+      # of it. v3 restored the mount, and with it Immich's storage and a Luanti
+      # that had failed to start 2168 times.
+      options = "_netdev,nfsvers=3,soft,timeo=100,retrans=3";
       description = "shadout bulk storage";
     }
   ];

@@ -164,6 +164,37 @@ Then test **colour management** in darktable/Ansel before migrating photo work �
 the one regression that would make this migration a bad trade, and it cannot be checked
 any other way.
 
+## Carrying Claude Code state across the reinstall
+
+`~/.claude` is 36 MB here, plus `~/.claude.json` (88 KB). Both are inside `$HOME`, so
+Déjà Dup covers them — but restoring the files is **not sufficient**, because of how
+session history is keyed.
+
+`~/.claude/projects/` is named by the project's absolute path with separators replaced:
+
+```
+-var-home-sergiusens-Dev-nix-config
+-var-home-sergiusens-Dev-gthumb
+-var-home-sergiusens-Dev-bluefin-xp
+```
+
+NixOS puts home at `/home/sergiusens`, not ostree's `/var/home/sergiusens`, so every one
+of those keys changes. Restore them unchanged and Claude Code will not find the history
+for any project — the sessions are intact on disk and simply never looked up. Rename them
+after restoring:
+
+```bash
+cd ~/.claude/projects
+for d in -var-home-sergiusens-*; do mv -- "$d" "${d/-var-home-/-home-}"; done
+```
+
+Authentication does survive: credentials are in `~/.claude/.credentials.json`, a plain
+file, not the GNOME keyring — so copying `~/.claude` carries the login with it. Keep its
+`0600` mode.
+
+Worth copying as a set: `~/.claude/` (projects, memory, history.jsonl, plugins,
+file-history) and `~/.claude.json`.
+
 ## Afterwards
 
 - Add your SSH public keys to `users.users.sergiusens.openssh.authorizedKeys.keys`;
