@@ -37,17 +37,59 @@ Put a copy somewhere else before either migration.
   `oci-containers` has no pod support. **Both values must change** to
   `immich-db` and `immich-redis` when the env file is re-encrypted into
   `secrets/thufir.yaml`.
-- **luanti has been stuck `activating` for weeks** and is not in `podman ps`.
-  Its quadlet carries `Requires=var-mnt-nas.automount`, and touching
-  `/var/mnt/nas` from a shell hangs — the NFS mount is unresponsive, which is
-  what `nas-watchdog` exists to paper over. Worth fixing on shadout before
-  blaming the new config for a Luanti that does not start.
+### The NAS mount is hung, and the watchdog never noticed
+
+Measured on orthanc, 2026-10-03:
+
+```
+ls /var/mnt/nas    -> exit 124 after 12s   (timed out)
+mountpoint -q      -> exit 124 after  5s   (blocks too)
+/proc/mounts       -> 192.168.0.101:/orthanc on /var/mnt/nas nfs4 ... soft,timeo=100
+```
+
+The NAS itself is fine — from leto it answers NFS v2/v3/v4, SMB, SSH and both
+web UIs, and exports `/orthanc` to `192.168.0.100` only. It is orthanc's client
+mount that is wedged, most likely stale NFSv4 state after a NAS reboot.
+
+**The watchdog has been failing silently for weeks.** Its first line is
+
+```sh
+if ! timeout 5 mountpoint -q /var/mnt/nas; then exit 0; fi
+```
+
+On a hung mount `mountpoint` blocks, `timeout` kills it with exit 124, the `!`
+turns that into true, and the script decides the path is not a mountpoint and
+exits 0. Every run in the journal "Deactivated successfully" after exactly five
+seconds. It has never once remounted anything.
+
+`hosts/thufir/default.nix` fixes this: the mounted-or-not test reads
+`/proc/mounts`, which cannot block, and only the liveness test is allowed to
+time out.
+
+Consequences visible right now on orthanc:
+
+- **luanti: 2168 failed starts.** Its volume is on the hung mount, so the
+  container start times out, systemd restarts it, forever.
+- **Immich's photo storage is on that mount too** (`/var/mnt/nas/immich/upload`).
+  The containers have been up five weeks and started when the mount was alive;
+  anything touching storage since is suspect.
+
+To recover orthanc without reinstalling anything:
+
+```bash
+sudo umount -l /var/mnt/nas
+sudo systemctl stop var-mnt-nas.mount
+ls /var/mnt/nas          # automount re-establishes on access
+```
+
+Worth doing regardless of the migration — and worth confirming Immich is
+actually healthy afterwards.
 
 ## Order of work
 
 1. Copy the backup somewhere that is not leto or orthanc.
-2. Fix or understand the hanging NFS mount on shadout. Several services depend
-   on it, and it is already causing one silent failure.
+2. Recover the hung NFS mount on orthanc (above). The NAS is healthy; the
+   client mount is wedged, and the watchdog meant to catch that is broken.
 3. Generate `hosts/thufir/hardware-configuration.nix` on the real machine, and
    confirm the LAN interface name — `enp0s20f0u3` is a USB NIC.
 4. Re-encrypt `/etc/immich/env` into `secrets/thufir.yaml` with the two

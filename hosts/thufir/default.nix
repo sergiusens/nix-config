@@ -92,10 +92,27 @@ in
 
   # An NFS mount can hang hard enough that every access blocks forever and the
   # containers wedge with it. This detects that and detaches, letting the
-  # automount re-establish on the next access. Ported verbatim in behaviour
-  # from orthanc's nas-watchdog, including the reasoning: `umount -l` returns
-  # immediately even on an unresponsive mount, and stopping the mount unit with
-  # --no-block avoids deadlocking inside systemd's own job transaction.
+  # automount re-establish on the next access.
+  #
+  # ####################### DO NOT USE `mountpoint` HERE #######################
+  # orthanc's version opened with:
+  #
+  #     if ! timeout 5 mountpoint -q /var/mnt/nas; then exit 0; fi
+  #
+  # which is backwards precisely when it matters. On a hung mount `mountpoint`
+  # BLOCKS, `timeout` kills it with exit 124, the `!` turns that into true, and
+  # the script concludes "not mounted, nothing to do" and exits 0. Measured on
+  # orthanc 2026-10-03: the mount was hung, every watchdog run exited
+  # "successfully" after exactly 5 seconds, and it had been doing that for
+  # weeks while luanti accumulated 2168 failed starts.
+  #
+  # Reading /proc/mounts cannot block, so the liveness test is the only part
+  # allowed to time out.
+  # ###########################################################################
+  #
+  # `umount -l` returns immediately even on an unresponsive mount, and stopping
+  # the mount unit with --no-block avoids deadlocking in systemd's own job
+  # transaction.
   systemd.services.nas-watchdog = {
     description = "NAS mount watchdog — remount if hung";
     after = [ "network-online.target" ];
@@ -105,15 +122,17 @@ in
       util-linux
       coreutils
       systemd
+      gnugrep
     ];
     script = ''
-      if ! timeout 5 mountpoint -q /var/mnt/nas; then
+      # Never blocks, unlike mountpoint(1).
+      if ! grep -q " /var/mnt/nas nfs" /proc/mounts; then
         exit 0
       fi
       if timeout 10 ls /var/mnt/nas > /dev/null 2>&1; then
         exit 0
       fi
-      echo "NAS mount at /var/mnt/nas is hung, remounting..."
+      echo "NAS mount at /var/mnt/nas is hung, detaching so the automount can retry"
       umount -l /var/mnt/nas || true
       systemctl --no-block stop var-mnt-nas.mount
     '';
