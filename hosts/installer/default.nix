@@ -149,9 +149,13 @@ in
     tmux
   ];
 
-  # image.fileName, not isoImage.isoName — the latter is a renamed alias and
-  # warns on evaluation.
-  image.fileName = lib.mkForce "atreides-installer-${config.system.nixos.label}-x86_64.iso";
+  # image.baseName, NOT image.fileName. The rename warning for the old
+  # isoImage.isoName points at fileName, but that only feeds image.filePath,
+  # which is metadata. iso-image.nix names the artifact from baseName:
+  #     isoName = "''${config.image.baseName}.iso";
+  # Setting fileName alone evaluates perfectly and still produces an ISO called
+  # nixos-minimal-*.iso. Extension is appended, so none here.
+  image.baseName = lib.mkForce "atreides-installer-${config.system.nixos.label}-x86_64";
 
   # zstd compresses a little worse than xz and builds a great deal faster,
   # which matters when the ISO is rebuilt after every config change.
