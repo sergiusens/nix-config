@@ -164,6 +164,63 @@ Then test **colour management** in darktable/Ansel before migrating photo work �
 the one regression that would make this migration a bad trade, and it cannot be checked
 any other way.
 
+## Restoring individual files from Déjà Dup
+
+Yes, and at file granularity. Déjà Dup 50.2 here uses **restic** (0.19.1), not duplicity —
+confirmed from `~/.var/app/org.gnome.DejaDup/cache/deja-dup/`, which holds a restic cache
+with `snapshots/` and `index/`. That matters, because restic is far better at partial
+restores than duplicity ever was.
+
+The repository: `smb://angrenost.great-torino.ts.net/cuivienen`, folder `deja-dup`,
+mounted on demand through gvfs at
+`/run/user/1000/gvfs/smb-share:server=…,share=cuivienen/deja-dup`. **13 snapshots**, from
+2026-02-14 to 2026-10-03, the latest 429 GiB of `/var/home/sergiusens`.
+
+### From the GUI
+
+Déjà Dup → **Browse Backups** walks the snapshot and restores whatever you select. In
+Files, right-clicking a folder offers **Restore Missing Files**.
+
+### From the command line
+
+The flatpak ships `restic`, and the repository was created with `--insecure-no-password`,
+so no passphrase is needed:
+
+```bash
+REPO="/run/user/1000/gvfs/smb-share:server=angrenost.great-torino.ts.net,share=cuivienen/deja-dup"
+R() { flatpak run --command=restic org.gnome.DejaDup --insecure-no-password --repo="$REPO" "$@"; }
+
+R snapshots                                     # list them
+R ls latest /var/home/sergiusens/.claude        # look inside one
+R restore latest --target ~/restore --include /var/home/sergiusens/.claude/settings.json
+R dump latest /var/home/sergiusens/.bashrc      # straight to stdout
+R mount ~/backup-browse                         # browse every snapshot as a filesystem
+```
+
+`restic mount` is the pleasant one for hunting: every snapshot appears as a directory tree
+and you copy out what you want.
+
+Two things to know. Restores reproduce the **absolute path** under `--target`, so the file
+above lands at `~/restore/var/home/sergiusens/.claude/settings.json`. And restoring as a
+normal user prints `ignoring error for /var/home: lchown … invalid argument`, then
+`Fatal: There were 1 errors` — that is only the ownership of the recreated parent
+directories, which an unprivileged user cannot set. The files themselves restore
+correctly; verified by diffing one against the live copy.
+
+### Relevant to this migration
+
+This is how `~/.claude` comes back after the reinstall. Note the snapshots store it at
+`/var/home/sergiusens/...` — the ostree path — so after restoring, the project directories
+still need the rename described below.
+
+### One security note
+
+`--insecure-no-password` means the repository is **not encrypted**. Anyone who can read
+the `cuivienen` share on the NAS can read the whole backup, including
+`~/.claude/.credentials.json`, SSH private keys and browser profiles. Worth deciding
+deliberately rather than by default; Déjà Dup can create an encrypted repository instead,
+though it means starting a new one.
+
 ## Carrying Claude Code state across the reinstall
 
 `~/.claude` is 36 MB here, plus `~/.claude.json` (88 KB). Both are inside `$HOME`, so
