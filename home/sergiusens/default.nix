@@ -69,6 +69,58 @@
     };
   };
 
+  # -------------------------------------------------------------------- prompt --
+  # Integration is injected into programs.bash below automatically; no manual
+  # eval line needed.
+  programs.starship = {
+    enable = true;
+    settings = {
+      add_newline = false;
+
+      # THE one that matters with a fleet this size. ssh_only means the
+      # hostname is invisible locally and appears the moment you are on
+      # another machine — so there is never any doubt whether a command is
+      # about to run on leto or on thufir.
+      hostname = {
+        ssh_only = true;
+        format = "[$hostname](bold red) ";
+      };
+      # Likewise only shown when it is not you.
+      username = {
+        show_always = false;
+        format = "[$user](bold yellow)@";
+      };
+
+      directory = {
+        truncation_length = 4;
+        truncate_to_repo = true;
+      };
+
+      git_branch.symbol = " ";
+      git_status.disabled = false;
+
+      # Visible marker that the shell is inside a nix develop / nix-shell,
+      # which matters constantly in this repo and in ../gthumb.
+      nix_shell = {
+        disabled = false;
+        format = "via [$symbol$state]($style) ";
+        symbol = "❄️ ";
+      };
+
+      # Only flag commands slow enough to be worth noticing.
+      cmd_duration = {
+        min_time = 2000;
+        format = "took [$duration](yellow) ";
+      };
+
+      # Red prompt character after a failed command.
+      character = {
+        success_symbol = "[❯](bold green)";
+        error_symbol = "[❯](bold red)";
+      };
+    };
+  };
+
   programs.bash = {
     enable = true;
     historyControl = [
