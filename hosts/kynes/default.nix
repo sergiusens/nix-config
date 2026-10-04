@@ -18,6 +18,7 @@
     ../../modules/desktop/dank.nix # DankMaterialShell, same as leto
     ../../modules/hardware/intel-graphics.nix
     ../../modules/profiles/laptop.nix
+    ../../modules/profiles/desktop.nix # audio, fonts, flatpak, keyring
     ../../modules/profiles/desktop-apps.nix # the shared application set
     ../../modules/work/policy.nix
   ];

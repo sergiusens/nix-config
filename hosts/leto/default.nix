@@ -15,6 +15,7 @@
     ../../modules/hardware/ipu6-camera.nix
     ../../modules/hardware/printing.nix
     ../../modules/profiles/laptop.nix
+    ../../modules/profiles/desktop.nix # audio, fonts, flatpak, keyring
     ../../modules/profiles/desktop-apps.nix
   ];
 

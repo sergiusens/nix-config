@@ -192,17 +192,9 @@
   # services.tailscale.authKeyFile pointed at a sops secret, which is the right
   # answer once secrets exist and is what unattended provisioning will need.
 
-  # --------------------------------------------------------------------- audio --
-  security.rtkit.enable = true;
-  services.pipewire = {
-    enable = true;
-    alsa.enable = true;
-    alsa.support32Bit = true;
-    pulse.enable = true;
-    wireplumber.enable = true;
-  };
-
   # ---------------------------------------------------------------- containers --
+  # In common rather than the desktop profile: thufir's entire job is running
+  # containers, and podman is useful on a workstation too.
   virtualisation.podman = {
     enable = true;
     dockerCompat = true;
@@ -210,23 +202,8 @@
     defaultNetwork.settings.dns_enabled = true;
   };
 
-  # --------------------------------------------------------------------- fonts --
-  fonts = {
-    enableDefaultPackages = true;
-    packages = with pkgs; [
-      noto-fonts
-      noto-fonts-cjk-sans
-      noto-fonts-color-emoji
-      inter
-      nerd-fonts.jetbrains-mono
-    ];
-    fontconfig.defaultFonts = {
-      sansSerif = [ "Inter" ];
-      monospace = [ "JetBrainsMono Nerd Font" ];
-    };
-  };
-
   # ------------------------------------------------------------------ packages --
+  # The CLI baseline every host gets, headless included.
   environment.systemPackages = with pkgs; [
     bat
     btop
@@ -248,13 +225,8 @@
 
   programs.direnv.enable = true;
 
-  # Flatpak kept as an escape hatch for apps not worth packaging. The Bluefin
-  # images preinstalled localsend and the Nextcloud client; both are in nixpkgs
-  # and are installed natively per-host instead.
-  services.flatpak.enable = true;
-
-  # Needed by Nextcloud client, Chrome and anything else storing secrets.
-  services.gnome.gnome-keyring.enable = true;
+  # Audio, fonts, flatpak and the login keyring live in
+  # modules/profiles/desktop.nix — a headless server wants none of them.
 
   # Set once and not bumped — this pins stateful-data migration behaviour, it is
   # not a "which nixpkgs" knob. Leave it alone unless you read the release notes.

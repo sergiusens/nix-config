@@ -146,6 +146,9 @@
       nixosConfigurations = {
         leto = mkHost "leto" laptopProfiles;
 
+        # Headless server: no laptop profiles, no desktop.
+        thufir = mkHost "thufir" [ ];
+
         kynes = mkHost "kynes" (
           laptopProfiles
           ++ [
