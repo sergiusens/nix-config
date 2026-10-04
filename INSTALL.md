@@ -137,6 +137,55 @@ in `~/.cache/leto-vm`; delete it to start from a clean disk.
 
    Switch back with `Ctrl+Alt+F1` and log in.
 
+## TPM-backed disk unlock
+
+`leto` has a TPM 2.0 (`/dev/tpm0`, `tpm_version_major: 2`), so LUKS can unlock without
+typing a passphrase at every boot. `hosts/leto/disko.nix` already passes
+`tpm2-device=auto`, which is inert until a key is enrolled — with no TPM keyslot the boot
+simply falls through to the passphrase prompt.
+
+Enrolment writes to the LUKS header, so it cannot be declarative. After installing:
+
+```bash
+# ALWAYS do this first: a printable fallback, independent of the TPM
+sudo systemd-cryptenroll --recovery-key /dev/nvme0n1p2
+
+# then the TPM, with a PIN
+sudo systemd-cryptenroll --tpm2-device=auto --tpm2-pcrs=7 --tpm2-with-pin=yes /dev/nvme0n1p2
+```
+
+(Partition number per `hosts/leto/disko.nix` — the LUKS container, not the ESP.)
+
+### Read this before deciding
+
+**TPM-only unlock substantially weakens encryption at rest.** A stolen laptop boots
+straight to the greeter and the disk is already decrypted; all that protects the data is
+the login password. A passphrase at boot means the data is genuinely inaccessible.
+`--tpm2-with-pin=yes` is the middle ground worth taking: a short PIN instead of a long
+passphrase, with the TPM's anti-hammering making it far harder to brute force than a PIN
+alone would suggest.
+
+**Always enrol a recovery key, and keep it off the machine.** A firmware update, a BIOS
+settings change or a Secure Boot state change can invalidate the PCR policy and leave the
+TPM unable to release the key. Without a recovery key that is unrecoverable data loss.
+
+**PCR choice is a trade.** Binding to PCR 7 alone (Secure Boot state) survives kernel
+updates. Adding 0, 4, 8 or 9 binds the boot chain more tightly but means re-enrolling
+after every kernel or bootloader change. `systemd-pcrlock` and signed PCR 11 policies are
+the modern answer to that churn and are worth looking at before binding widely.
+
+### The Secure Boot problem
+
+This machine currently reports `Secure Boot: enabled (deployed)` under Bluefin. **NixOS
+does not support Secure Boot out of the box** — after the migration it will be off unless
+[lanzaboote](https://github.com/nix-community/lanzaboote) is set up to sign the boot
+chain with your own keys.
+
+That matters here specifically: PCR 7 measures Secure Boot *state*, so with Secure Boot
+disabled, binding to PCR 7 attests to much less than it does today. TPM unlock still
+works, it just guarantees less. If TPM unlock matters to you, lanzaboote is the companion
+piece, not an optional extra.
+
 ## First-boot checklist
 
 Things evaluation and building cannot verify:

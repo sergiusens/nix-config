@@ -33,7 +33,19 @@
           content = {
             type = "luks";
             name = "cryptroot";
-            settings.allowDiscards = true;
+            settings = {
+              allowDiscards = true;
+
+              # Lets systemd-cryptsetup try the TPM before asking for a
+              # passphrase. Harmless until something is actually enrolled —
+              # with no TPM keyslot present it simply falls through to the
+              # passphrase prompt — so it is safe to carry from the start.
+              #
+              # Enrolment itself writes to the LUKS header and cannot be
+              # declarative; see INSTALL.md. Requires
+              # boot.initrd.systemd.enable, which modules/common already sets.
+              crypttabExtraOpts = [ "tpm2-device=auto" ];
+            };
             content = {
               type = "btrfs";
               extraArgs = [ "-L" "leto" ];
