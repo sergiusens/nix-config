@@ -3,8 +3,18 @@
   imports = [
     ./hyprland.nix
     ./herdr.nix
-    ./deja-dup.nix
   ];
+
+  # Déjà Dup is installed (modules/profiles/desktop-apps.nix) but deliberately
+  # NOT configured declaratively. The existing repository is unencrypted
+  # (restic with --insecure-no-password), so the plan is: restore from it by
+  # hand after the reinstall, then create a fresh ENCRYPTED repository and
+  # retire the old one. Encoding the old settings here would only make it easy
+  # to recreate the thing being replaced.
+  #
+  # The new repository should also target a share named `leto` rather than
+  # `cuivienen`, which still carries the pre-rename hostname.
+  # See INSTALL.md for the restore procedure.
 
   home.username = "sergiusens";
   # NOTE: NixOS uses /home, not the /var/home that ostree-based Bluefin used.

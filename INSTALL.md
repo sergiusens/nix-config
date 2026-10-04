@@ -213,13 +213,29 @@ This is how `~/.claude` comes back after the reinstall. Note the snapshots store
 `/var/home/sergiusens/...` — the ostree path — so after restoring, the project directories
 still need the rename described below.
 
-### One security note
+### The plan, and why none of this is in the Nix config
 
-`--insecure-no-password` means the repository is **not encrypted**. Anyone who can read
-the `cuivienen` share on the NAS can read the whole backup, including
-`~/.claude/.credentials.json`, SSH private keys and browser profiles. Worth deciding
-deliberately rather than by default; Déjà Dup can create an encrypted repository instead,
-though it means starting a new one.
+The existing repository was created with `--insecure-no-password` and is therefore **not
+encrypted**: anyone who can read the share can read the whole backup, including
+`~/.claude/.credentials.json`, SSH private keys and browser profiles.
+
+So Déjà Dup is installed but **not configured declaratively**. The sequence is:
+
+1. Restore what you need from the old, unencrypted repository by hand (above).
+2. Set Déjà Dup up again from scratch, this time **with encryption**.
+3. Point it at a share named `leto`, not `cuivienen` — the latter still carries the
+   pre-rename hostname.
+4. Retire the old repository once the new chain has enough history to trust.
+
+Encryption cannot be added to an existing restic repository, so this means a fresh 429 GiB
+upload and starting the snapshot history over. That is the reason the old settings are not
+reproduced in `home/sergiusens/`: encoding them would make it effortless to recreate
+exactly the thing being replaced.
+
+For reference, the settings that located the old repository were `backend = 'remote'`,
+`Remote.uri = 'smb://angrenost.great-torino.ts.net/cuivienen'`, `Remote.folder =
+'deja-dup'`, with the SMB password in the login keyring rather than in any setting
+(`secret-tool lookup protocol smb server angrenost.great-torino.ts.net user sergiusens`).
 
 ## Carrying Claude Code state across the reinstall
 

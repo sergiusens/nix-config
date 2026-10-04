@@ -191,20 +191,13 @@ Four things are **not** automatic:
 
 ## Backups
 
-Déjà Dup was a Flatpak on Bluefin, so its settings lived in the sandbox keyfile at
-`~/.var/app/org.gnome.DejaDup/config/glib-2.0/settings/keyfile` rather than host dconf —
-which is why `gsettings list-recursively` finds nothing on the host.
-`home/sergiusens/deja-dup.nix` ports them to dconf verbatim, with paths rewritten
-`$HOME`-relative so they survive a move to another machine.
+Déjà Dup is installed but **not configured declaratively**, on purpose. The existing
+repository is restic created with `--insecure-no-password`, i.e. unencrypted, so the plan
+is to restore from it by hand after the reinstall and then set up a fresh encrypted
+repository on a share named `leto`. Encryption cannot be retrofitted to a restic
+repository.
 
-The settings include `$HOME` in *both* include-list and exclude-list. That reads as
-self-defeating but the configuration demonstrably works, so the entry is inert in
-practice; it is reproduced rather than cleaned up. Don't "fix" it without testing a
-restore.
-
-The target is `smb://angrenost.great-torino.ts.net/cuivienen`: over Tailscale, so backups
-work away from home, but the share is still named for the old hostname and wants renaming
-to `leto`.
+`INSTALL.md` carries the restore procedure and the old settings for reference.
 
 ## Caveats worth reading before you commit to this
 
