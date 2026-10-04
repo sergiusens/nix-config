@@ -111,16 +111,10 @@
       };
 
       # -------------------------------------------------------------- autostart --
-      # Only things home-manager does NOT already run belong here.
-      # waybar (programs.waybar.systemd.enable), mako (services.mako),
-      # hyprpaper (services.hyprpaper) and hypridle (services.hypridle) each
-      # get a systemd user unit bound to graphical-session.target, which uwsm
-      # starts. Launching them from exec-once as well gives you two of each —
-      # two bars being the visible symptom.
-      exec-once = [
-        "systemctl --user start hyprpolkitagent"
-        "wl-paste --watch cliphist store"
-      ];
+      # Nothing to autostart. DankMaterialShell runs from its own systemd user
+      # unit (programs.dms-shell.systemd.enable) and brings the polkit agent
+      # and clipboard with it. Anything added here must NOT duplicate a
+      # systemd user service, or you get two of it — the two-waybars fault.
 
       # --------------------------------------------------------------- keybinds --
       "$mod" = "SUPER";
@@ -132,11 +126,11 @@
         "$mod, Return, exec, uwsm app -- ghostty"
         "$mod SHIFT, Return, exec, uwsm app -- foot"
 
-        "$mod, D, exec, uwsm app -- fuzzel"
+        "$mod, D, exec, dms ipc call spotlight toggle"
         "$mod, E, exec, uwsm app -- nautilus"
         "$mod, Q, killactive,"
         "$mod SHIFT, E, exit,"
-        "$mod, L, exec, loginctl lock-session"
+        "$mod, L, exec, dms ipc call lock lock"
         "$mod, V, togglefloating,"
         "$mod, F, fullscreen,"
         "$mod, P, pseudo,"
@@ -144,8 +138,13 @@
         # (the default config calls hl.dsp.layout("togglesplit")).
         "$mod, J, layoutmsg, togglesplit"
 
-        # Clipboard history
-        "$mod SHIFT, V, exec, cliphist list | fuzzel --dmenu | cliphist decode | wl-copy"
+        # DankMaterialShell surfaces. Verbs come from the project's own
+        # core/internal/config/embedded/hypr-binds.lua, translated to hyprlang.
+        "$mod SHIFT, V, exec, dms ipc call clipboard toggle"
+        "$mod, N, exec, dms ipc call notifications toggle"
+        "$mod, X, exec, dms ipc call powermenu toggle"
+        "$mod, comma, exec, dms ipc call settings focusOrToggle"
+        "$mod SHIFT, Slash, exec, dms ipc call keybinds toggle hyprland"
 
         # Screenshots
         ", Print, exec, hyprshot -m output"
@@ -181,19 +180,22 @@
       );
 
       # Repeat while held
+      # Routed through DMS rather than brightnessctl/pamixer directly, so its
+      # on-screen display appears and the shell's own state stays in step.
       binde = [
-        ", XF86MonBrightnessUp, exec, brightnessctl set +5%"
-        ", XF86MonBrightnessDown, exec, brightnessctl set 5%-"
-        ", XF86AudioRaiseVolume, exec, pamixer -i 5"
-        ", XF86AudioLowerVolume, exec, pamixer -d 5"
+        ", XF86MonBrightnessUp, exec, dms ipc call brightness increment 5 \"\""
+        ", XF86MonBrightnessDown, exec, dms ipc call brightness decrement 5 \"\""
+        ", XF86AudioRaiseVolume, exec, dms ipc call audio increment 3"
+        ", XF86AudioLowerVolume, exec, dms ipc call audio decrement 3"
       ];
 
       # Work even when the screen is locked
       bindl = [
-        ", XF86AudioMute, exec, pamixer -t"
-        ", XF86AudioPlay, exec, playerctl play-pause"
-        ", XF86AudioNext, exec, playerctl next"
-        ", XF86AudioPrev, exec, playerctl previous"
+        ", XF86AudioMute, exec, dms ipc call audio mute"
+        ", XF86AudioMicMute, exec, dms ipc call audio micmute"
+        ", XF86AudioPlay, exec, dms ipc call mpris playPause"
+        ", XF86AudioNext, exec, dms ipc call mpris next"
+        ", XF86AudioPrev, exec, dms ipc call mpris previous"
       ];
 
       bindm = [
@@ -203,13 +205,6 @@
     };
   };
 
-  services.hyprpaper = {
-    enable = true;
-    settings = {
-      # TODO: point at a real wallpaper; one of your own photographs would be
-      # the obvious choice for this machine.
-      preload = [ ];
-      wallpaper = [ ];
-    };
-  };
+  # Wallpaper is DankMaterialShell's: `dms ipc call wallpaper set <path>`,
+  # and enableDynamicTheming recolours the shell from it. hyprpaper removed.
 }

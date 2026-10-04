@@ -49,6 +49,17 @@
     # and bumping it deliberately instead.
     claude-desktop.url = "github:poeck/claude-desktop-nix-flake";
 
+    # DankMaterialShell: a Quickshell+Go desktop shell, not merely a bar. It
+    # supplies the panel, launcher, notifications, lockscreen, idle handling,
+    # polkit agent, clipboard and wallpaper — which is why adopting it means
+    # retiring waybar, fuzzel, mako, hyprlock, hypridle, hyprpolkitagent and
+    # hyprpaper rather than running both. The `stable` branch is the released
+    # channel; drop the suffix for development.
+    dms = {
+      url = "github:AvengeMedia/DankMaterialShell/stable";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
+
     # The gThumb 4 fork in ../gthumb ("Reflect"), which now carries its own
     # flake.nix and nix/package.nix. Left commented because the fork lives only
     # on this machine: its git remote is still upstream GNOME, so there is no
@@ -76,6 +87,7 @@
       kolide-launcher,
       herdr,
       claude-desktop,
+      dms,
       ...
     }:
     let

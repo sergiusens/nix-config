@@ -117,8 +117,8 @@ in
 
   # Unlock the login keyring with the login password, as GNOME did.
   security.pam.services.greetd.enableGnomeKeyring = true;
-  # hyprlock authenticates against PAM; without this it can never unlock.
-  security.pam.services.hyprlock = { };
+  # DMS provides the lockscreen now. Its PAM configuration is declared by the
+  # dms-shell module; hyprlock's stanza is gone with hyprlock.
 
   # ------------------------------------------------------------------- portals --
   # programs.hyprland already provides xdg-desktop-portal-hyprland (screencast,
@@ -147,13 +147,10 @@ in
     foot
 
     # --- session ----------------------------------------------------------
-    waybar
-    mako # notifications
-    fuzzel # launcher
-    hyprpaper # wallpaper
-    hyprlock # screen lock
-    hypridle # idle management
-    hyprpolkitagent # graphical auth prompts
+    # The panel, launcher, notifications, lock, idle, polkit agent, clipboard
+    # and wallpaper all come from DankMaterialShell now; see
+    # modules/desktop/dank.nix. Removed from here: waybar, mako, fuzzel,
+    # hyprpaper, hyprlock, hypridle, hyprpolkitagent.
     hyprcursor
 
     # --- screenshots and clipboard ----------------------------------------

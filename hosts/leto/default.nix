@@ -10,6 +10,7 @@
   imports = [
     ./disko.nix
     ../../modules/desktop/hyprland.nix
+    ../../modules/desktop/dank.nix
     ../../modules/hardware/intel-graphics.nix
     ../../modules/hardware/ipu6-camera.nix
     ../../modules/hardware/printing.nix
