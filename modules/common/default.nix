@@ -1,5 +1,6 @@
 # Baseline shared by every NixOS host in the fleet.
 {
+  config,
   lib,
   pkgs,
   hostName,
@@ -162,6 +163,34 @@
   };
 
   networking.firewall.enable = true;
+
+  # ----------------------------------------------------------------- tailnet --
+  # Every host joins the tailnet (great-torino.ts.net). It is how machines reach
+  # each other away from the LAN — the Deja Dup target is already an SMB URI on
+  # the tailnet rather than a 192.168 address — and it is what makes remote
+  # administration of a roaming laptop possible at all.
+  services.tailscale = {
+    enable = true;
+    # "client" accepts subnet routes advertised by other nodes without
+    # advertising any itself. thufir is the one that exports the LAN.
+    useRoutingFeatures = "client";
+  };
+
+  # Traffic arriving over the tailnet is trusted: it is already authenticated
+  # and encrypted by WireGuard, and these are all machines in this fleet.
+  networking.firewall = {
+    trustedInterfaces = [ "tailscale0" ];
+    # Lets tailscaled negotiate direct connections instead of relaying via DERP.
+    allowedUDPPorts = [ config.services.tailscale.port ];
+    # Required for direct connections to survive the firewall seeing the
+    # WireGuard handshake on an unexpected interface.
+    checkReversePath = "loose";
+  };
+
+  # NOTE: enabling the daemon does not enrol the machine. Each host still needs
+  # a one-off `sudo tailscale up` — or an auth key via
+  # services.tailscale.authKeyFile pointed at a sops secret, which is the right
+  # answer once secrets exist and is what unattended provisioning will need.
 
   # --------------------------------------------------------------------- audio --
   security.rtkit.enable = true;

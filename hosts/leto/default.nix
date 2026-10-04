@@ -15,6 +15,7 @@
     ../../modules/hardware/ipu6-camera.nix
     ../../modules/hardware/printing.nix
     ../../modules/profiles/laptop.nix
+    ../../modules/profiles/desktop-apps.nix
   ];
 
   # ------------------------------------------------------------------- memory --
@@ -80,11 +81,13 @@
   hardware.enableRedistributableFirmware = true;
 
   # ------------------------------------------------------------------ packages --
+  # Only what is specific to leto. Everything shared lives in
+  # modules/profiles/desktop-apps.nix.
   environment.systemPackages = with pkgs; [
     # --- photo workflow ---------------------------------------------------
-    # These four are one pipeline: ingest from the card, organise and cull,
-    # then develop. gthumb is the fork in ../gthumb ("Reflect"), packaged
-    # separately — see modules/desktop/gthumb.nix.
+    # These are one pipeline: ingest from the card, organise and cull, then
+    # develop. gthumb is the fork in ../gthumb ("Reflect"), packaged
+    # separately — see the gthumb section of README.md.
     rapid-photo-downloader # card ingest; came from a COPR on bluefin-xp
     ansel # darktable fork; the Reflect fork reads its database
     rapidraw # second raw developer; Reflect records rapidraw_export provenance
@@ -95,27 +98,8 @@
     # --- video --------------------------------------------------------------
     shotcut
 
-    # --- agents -----------------------------------------------------------
-    claude-code
-    # herdr is a terminal MULTIPLEXER for coding agents, not an agent: it
-    # detects claude-code, codex, amp and others and shows each pane as
-    # blocked/working/done/idle. It runs claude-code rather than replacing it.
-    # Configured declaratively in home/sergiusens/herdr.nix.
-    herdr
-    claude-desktop # from the flake input; see the caveat in flake.nix
-
-    # --- desktop ----------------------------------------------------------
-    fractal # Matrix client; complements telegram-desktop and slack
-    gnome-secrets # "Secrets": GNOME password manager, KeePass v4 format
-    helix # editor
-    newsflash # RSS
-    papers # the GTK4 document viewer that replaced Evince
-    deja-dup # backups; configured in home/sergiusens/deja-dup.nix
-    ticketbooth # film and TV tracker
-    telegram-desktop
-    slack # unfree
-    luanti # also self-hosted on thufir
-    localsend # was a flatpak preinstall on bluefin-xp
+    # --- games --------------------------------------------------------------
+    luanti # this host only; also self-hosted on thufir
   ];
 
   # NOTE: nextcloud-client was removed. It was carried over from bluefin-xp's
@@ -129,11 +113,6 @@
   # To bring it back without the surprise, add the package and mask the
   # activation by shadowing the .service file in share/dbus-1/services, or just
   # launch it deliberately from the launcher.
-
-  # programs.firefox rather than the bare package: it wires up policies, native
-  # messaging hosts and the desktop integration that a plain systemPackages
-  # entry does not.
-  programs.firefox.enable = true;
 
   # ---------------------------------------------------------------- VM variant --
   # Applies ONLY to `nix build .#nixosConfigurations.leto.config.system.build.vm`,
@@ -165,9 +144,4 @@
     services.printing.enable = lib.mkForce false;
   };
 
-  networking.firewall = {
-    # LocalSend needs these to discover and receive from phones on the LAN.
-    allowedTCPPorts = [ 53317 ];
-    allowedUDPPorts = [ 53317 ];
-  };
 }
