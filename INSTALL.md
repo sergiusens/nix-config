@@ -137,6 +137,62 @@ in `~/.cache/leto-vm`; delete it to start from a clean disk.
 
    Switch back with `Ctrl+Alt+F1` and log in.
 
+## Secure Boot (lanzaboote)
+
+Bluefin has Secure Boot on today — `bootctl status` reports `enabled (deployed)`. Stock
+NixOS cannot do Secure Boot at all, so migrating without lanzaboote silently gives that
+up. `modules/hardware/secure-boot.nix` is imported by `leto`.
+
+**Do this before enrolling the TPM.** See the ordering note at the end.
+
+1. Generate your own keys (after the first boot into NixOS):
+
+   ```bash
+   sudo sbctl create-keys
+   ```
+
+2. Rebuild, so lanzaboote signs the boot files with them:
+
+   ```bash
+   sudo nixos-rebuild switch --flake .#leto
+   sudo sbctl verify          # everything under the ESP should report signed
+   ```
+
+3. Reboot into the firmware and put Secure Boot into **Setup Mode**. On this Dell that is
+   Security → Secure Boot → Secure Boot Mode, or clearing the existing keys. Nothing can
+   be enrolled while the firmware holds the factory keys.
+
+4. Back in NixOS, enrol:
+
+   ```bash
+   sudo sbctl enroll-keys --microsoft
+   ```
+
+   **`--microsoft` is not optional here.** It keeps Microsoft's KEK and db alongside yours,
+   which is what allows MS-signed option ROMs — Thunderbolt, the GPU, and other firmware
+   blobs on Dell hardware — to keep loading. Enrolling only your own keys is a known way
+   to end up with hardware that no longer initialises.
+
+5. Reboot and confirm:
+
+   ```bash
+   bootctl status             # Secure Boot: enabled (user)
+   sbctl status
+   ```
+
+If something goes wrong, Secure Boot can be turned off again in the firmware and the
+machine will boot normally. That is the escape hatch; it is worth knowing it exists before
+starting rather than discovering it at a dead boot screen.
+
+### Ordering, and why it matters
+
+Secure Boot **first**, TPM enrolment **second**.
+
+PCR 7 measures Secure Boot state and the enrolled keys. Enrolling a TPM policy against
+PCR 7 and *then* turning Secure Boot on changes that register, the TPM refuses to release
+the key, and you are into the recovery key. Doing it in this order means the policy is
+sealed against the state you actually intend to run.
+
 ## TPM-backed disk unlock
 
 `leto` has a TPM 2.0 (`/dev/tpm0`, `tpm_version_major: 2`), so LUKS can unlock without
@@ -174,17 +230,14 @@ updates. Adding 0, 4, 8 or 9 binds the boot chain more tightly but means re-enro
 after every kernel or bootloader change. `systemd-pcrlock` and signed PCR 11 policies are
 the modern answer to that churn and are worth looking at before binding widely.
 
-### The Secure Boot problem
+### Do Secure Boot first
 
-This machine currently reports `Secure Boot: enabled (deployed)` under Bluefin. **NixOS
-does not support Secure Boot out of the box** — after the migration it will be off unless
-[lanzaboote](https://github.com/nix-community/lanzaboote) is set up to sign the boot
-chain with your own keys.
+PCR 7 measures Secure Boot state and the enrolled keys, so a policy sealed against it is
+only worth something once Secure Boot is actually on and running your own keys — and
+sealing it *before* enabling Secure Boot guarantees the policy breaks the moment you do.
 
-That matters here specifically: PCR 7 measures Secure Boot *state*, so with Secure Boot
-disabled, binding to PCR 7 attests to much less than it does today. TPM unlock still
-works, it just guarantees less. If TPM unlock matters to you, lanzaboote is the companion
-piece, not an optional extra.
+lanzaboote is set up in the section above. Finish that, confirm `bootctl status` reports
+Secure Boot enabled, and only then run the `systemd-cryptenroll` commands here.
 
 ## First-boot checklist
 

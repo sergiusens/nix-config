@@ -49,6 +49,14 @@
     # and bumping it deliberately instead.
     claude-desktop.url = "github:poeck/claude-desktop-nix-flake";
 
+    # Secure Boot for NixOS: signs the boot chain with keys you own, which
+    # stock NixOS cannot do. Needed to keep the Secure Boot that Bluefin has
+    # today, and to make a TPM PCR 7 policy mean anything afterwards.
+    lanzaboote = {
+      url = "github:nix-community/lanzaboote/v1.2.0";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
+
     # DankMaterialShell: a Quickshell+Go desktop shell, not merely a bar. It
     # supplies the panel, launcher, notifications, lockscreen, idle handling,
     # polkit agent, clipboard and wallpaper — which is why adopting it means
@@ -88,6 +96,7 @@
       herdr,
       claude-desktop,
       dms,
+      lanzaboote,
       ...
     }:
     let
