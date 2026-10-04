@@ -1,5 +1,8 @@
 # HP printer and scanner support, including the proprietary HPLIP plugin.
 #
+# Confirmed wanted on leto — not an unexamined carry-over from bluefin-xp,
+# unlike nextcloud-client, darktable and gimp, which were removed.
+#
 # This is the clearest win of the move to NixOS. bluefin-xp carried the plugin
 # as a hand-assembled binary overlay committed into the image — prebuilt .so
 # files under /usr/lib64/sane, firmware blobs, a pycache, and a
