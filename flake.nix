@@ -152,8 +152,8 @@
         kynes = mkHost "kynes" (
           laptopProfiles
           ++ [
-            # Provides services.kolide-launcher, which modules/work/policy.nix
-            # configures. A host enabling fleet.policy must have this module.
+            # Provides services.kolide-launcher, which modules/work/compliance.nix
+            # configures. A host enabling work.compliance must have this module.
             kolide-launcher.nixosModules.kolide-launcher
           ]
         );

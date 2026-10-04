@@ -116,7 +116,7 @@ byte-identical is what makes it possible to diff against upstream and pull in fi
 `modules/work/ATTRIBUTION.md` records the pinned commit and checksums; keep it in place,
 since the licence requires the notice to travel with the code.
 
-Fleet-specific configuration goes in `modules/work/policy.nix`, which is ours.
+Fleet-specific configuration goes in `modules/work/compliance.nix`, which is ours.
 
 ## Facts worth knowing
 

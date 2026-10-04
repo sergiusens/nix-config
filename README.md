@@ -36,7 +36,7 @@ leto  → nixos-system-leto-26.05.20261002.774debe.drv
 kynes → nixos-system-kynes-26.05.20261002.774debe.drv
 ```
 
-`kynes` was also evaluated separately with `fleet.policy.enable = true`, on a throwaway
+`kynes` was also evaluated separately with `work.compliance.enable = true`, on a throwaway
 copy, since with the flag off the entire Falcon module, Kolide wiring and sops declarations
 are never evaluated at all. That path is clean too.
 
@@ -181,7 +181,7 @@ Four things are **not** automatic:
 
 - **Secrets re-keying.** sops age keys are per-host, derived from the SSH host key. A new
   machine needs its key added to `.sops.yaml` and then
-  `sops updatekeys secrets/policy.yaml`. This is the step that gets forgotten, and the
+  `sops updatekeys secrets/compliance.yaml`. This is the step that gets forgotten, and the
   symptom is a confusing activation failure.
 - **Falcon and Kolide re-enrollment** on `kynes`-like hosts. The CID is unchanged but
   device identity is per-host: `gh auth login && falcon-sensor-install`, and Kolide
@@ -283,8 +283,8 @@ sudo btrfs inspect-internal map-swapfile -r /swap/swapfile
 
 ### The work laptop's compliance agents
 
-No longer stubs. `modules/work/policy.nix` wires up both agents, gated behind
-`fleet.policy.enable`, which is **off** until `secrets/policy.yaml` is a real
+No longer stubs. `modules/work/compliance.nix` wires up both agents, gated behind
+`work.compliance.enable`, which is **off** until `secrets/compliance.yaml` is a real
 sops-encrypted file.
 
 **Kolide** is packaged properly upstream by Kolide themselves
@@ -360,9 +360,9 @@ once the file does. Commands are in `hosts/leto/default.nix`.
 2. Generate `hosts/kynes/hardware-configuration.nix` on the real machine.
 3. Test the colour-management path before migrating photo work.
 4. Set up `sops-nix`: put real age public keys in `.sops.yaml`, then
-   `sops secrets/policy.yaml` with `kolide`, `falcon-cid` and `falcon-repo`. The file
+   `sops secrets/compliance.yaml` with `kolide`, `falcon-cid` and `falcon-repo`. The file
    currently in the repo is an unencrypted placeholder so the flake evaluates — replace it
-   before setting `fleet.policy.enable = true`.
+   before setting `work.compliance.enable = true`.
 5. Add SSH public keys to `users.users.sergiusens.openssh.authorizedKeys.keys`; it is
    deliberately empty.
 6. Pick a wallpaper for `hyprpaper`, currently unset.

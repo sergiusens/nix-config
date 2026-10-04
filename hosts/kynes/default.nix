@@ -20,7 +20,7 @@
     ../../modules/profiles/laptop.nix
     ../../modules/profiles/desktop.nix # audio, fonts, flatpak, keyring
     ../../modules/profiles/desktop-apps.nix # the shared application set
-    ../../modules/work/policy.nix
+    ../../modules/work/compliance.nix
   ];
 
   # Deliberately NOT imported from leto:
@@ -29,8 +29,8 @@
   #     and `lsusb` on it before assuming anything.
   #   hardware/printing.nix — the HP printer and scanner live with leto.
 
-  # Turn on once secrets/policy.yaml is a real sops-encrypted file holding
-  # kolide, falcon-cid and falcon-repo. See modules/work/policy.nix and
+  # Turn on once secrets/compliance.yaml is a real sops-encrypted file holding
+  # kolide, falcon-cid and falcon-repo. See modules/work/compliance.nix and
   # modules/work/ATTRIBUTION.md.
   #
   # Falcon additionally needs a one-off imperative bootstrap, since the sensor
@@ -39,7 +39,7 @@
   #   falcon-sensor-install
   # The service carries ConditionPathExists=/opt/CrowdStrike/falcond, so it
   # stays inert rather than failing until that has run.
-  fleet.policy.enable = false;
+  work.compliance.enable = false;
 
   # Intel graphics is assumed. If kynes turns out to be AMD, drop the
   # intel-graphics import above.
@@ -81,6 +81,6 @@
     # No endpoint agents in a throwaway VM: Falcon needs an imperative
     # bootstrap and real secrets, and enrolling a VM with Kolide would register
     # a bogus device.
-    fleet.policy.enable = lib.mkForce false;
+    work.compliance.enable = lib.mkForce false;
   };
 }

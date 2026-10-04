@@ -18,7 +18,7 @@
   ...
 }:
 let
-  cfg = config.fleet.policy;
+  cfg = config.work.compliance;
   username = "sergiusens";
 
   # Automates bootstrap and update of the Falcon sensor: resolves the release
@@ -57,10 +57,10 @@ in
 {
   imports = [ ./falcon-sensor.nix ];
 
-  options.fleet.policy.enable = lib.mkEnableOption ''
+  options.work.compliance.enable = lib.mkEnableOption ''
     work endpoint compliance agents (CrowdStrike Falcon and Kolide).
 
-    Requires secrets/policy.yaml to be a real sops-encrypted file containing
+    Requires secrets/compliance.yaml to be a real sops-encrypted file containing
     kolide, falcon-cid and falcon-repo. Leaving this off is the correct state
     until those exist
   '';
@@ -128,15 +128,15 @@ in
       kolide = {
         mode = "0600";
         path = "/etc/kolide-k2/secret";
-        sopsFile = ../../secrets/policy.yaml;
+        sopsFile = ../../secrets/compliance.yaml;
       };
       falcon-cid = {
         mode = "0600";
-        sopsFile = ../../secrets/policy.yaml;
+        sopsFile = ../../secrets/compliance.yaml;
       };
       falcon-repo = {
         mode = "0600";
-        sopsFile = ../../secrets/policy.yaml;
+        sopsFile = ../../secrets/compliance.yaml;
       };
     };
   };
