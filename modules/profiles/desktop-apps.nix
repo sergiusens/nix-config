@@ -25,7 +25,6 @@
     ticketbooth # film and TV tracker
     telegram-desktop
     slack # unfree
-    localsend # was a flatpak preinstall on bluefin-xp
   ];
 
   # programs.firefox rather than the bare package: it wires up policies, native
@@ -33,10 +32,4 @@
   # entry does not. Which browser is *default* is per-host, decided in
   # home/sergiusens/default.nix from hostName.
   programs.firefox.enable = true;
-
-  networking.firewall = {
-    # LocalSend needs these to discover and receive from phones on the LAN.
-    allowedTCPPorts = [ 53317 ];
-    allowedUDPPorts = [ 53317 ];
-  };
 }
