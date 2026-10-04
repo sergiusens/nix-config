@@ -158,6 +158,15 @@
         # Headless server: no laptop profiles, no desktop.
         thufir = mkHost "thufir" [ ];
 
+        # The installer ISO. Deliberately NOT built with mkHost: it shares
+        # nothing with a real host — no users, no desktop, no home-manager —
+        # and inherits from nixpkgs' installation-cd module instead.
+        installer = nixpkgs.lib.nixosSystem {
+          inherit system;
+          specialArgs = { inherit inputs; };
+          modules = [ ./hosts/installer ];
+        };
+
         kynes = mkHost "kynes" (
           laptopProfiles
           ++ [
@@ -167,6 +176,9 @@
           ]
         );
       };
+
+      # nix build .#installer-iso
+      packages.${system}.installer-iso = self.nixosConfigurations.installer.config.system.build.isoImage;
 
       formatter.${system} = nixpkgs.legacyPackages.${system}.nixfmt-rfc-style;
     };

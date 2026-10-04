@@ -128,11 +128,12 @@
     ];
     shell = pkgs.bash;
 
-    # TODO: add your SSH public keys here before relying on remote deploys.
-    # Deliberately left empty rather than copied out of bluefin-xp's orthanc.bu,
-    # since those are the server's authorized keys and it is not clear which
-    # still correspond to live private keys.
-    openssh.authorizedKeys.keys = [ ];
+    # Confirmed live: this is ~/.ssh/id_ed25519.pub on leto, and it is already
+    # among the authorized keys on orthanc — which is how this fleet was
+    # administered over ssh while writing this config.
+    openssh.authorizedKeys.keys = [
+      "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIIAe2M8f3VTe9BrhfnemaHHKYDnmrzPTZJ3LnXWVK56H"
+    ];
 
     # NO PASSWORD IS SET HERE, deliberately. Options, worst to best:
     #   initialPassword      — plaintext, world-readable in the nix store
