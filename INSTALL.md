@@ -119,7 +119,23 @@ in `~/.cache/leto-vm`; delete it to start from a clean disk.
 
    Check `/mnt` looks right afterwards: `/`, `/home`, `/nix`, `/swap` and `/boot`.
 
-5. Install. This builds the whole closure, so expect it to take a while on battery —
+   **Do not rerun this command if a later step fails.** It reformats the disk you just
+   partitioned. Mount by hand instead and continue manually — see "Recovering a
+   half-installed disk" below.
+
+5. **Generate the Secure Boot keys before installing, not after.** lanzaboote signs the
+   boot files *during* `nixos-install`, so sbctl's keys must already exist on the target.
+   Skipping this makes `nixos-install` fail with
+   `Failed to read public key from /var/lib/sbctl/keys/db/db.pem`:
+
+   ```bash
+   sudo nix shell nixpkgs#sbctl -c sbctl create-keys
+   sudo install -d -m 700 /mnt/var/lib
+   sudo cp -a /var/lib/sbctl /mnt/var/lib/sbctl
+   test -e /mnt/var/lib/sbctl/keys/db/db.pem || echo "sbctl keys missing!"
+   ```
+
+6. Install. This builds the whole closure, so expect it to take a while on battery —
    stay on mains:
 
    ```bash
@@ -127,13 +143,13 @@ in `~/.cache/leto-vm`; delete it to start from a clean disk.
    ```
 
    It prompts for a **root password** at the end. Set one you will remember; you need it
-   in step 7.
+   in step 8.
 
-6. `reboot`, remove the USB. You will be asked for the LUKS passphrase from step 4.
+7. `reboot`, remove the USB. You will be asked for the LUKS passphrase from step 4.
 
-7. **Set your user password.** The config deliberately ships without one, so the greeter
+8. **Set your user password.** The config deliberately ships without one, so the greeter
    will not let you in yet. Switch to a text console with `Ctrl+Alt+F2`, log in as `root`
-   with the password from step 5, then:
+   with the password from step 6, then:
 
    ```bash
    passwd sergiusens
@@ -149,26 +165,26 @@ up. `modules/hardware/secure-boot.nix` is imported by `leto`.
 
 **Do this before enrolling the TPM.** See the ordering note at the end.
 
-1. Generate your own keys (after the first boot into NixOS):
+The keys already exist and generation 1 is already signed — that happened in step 5 of
+Install, before `nixos-install` ran, because lanzaboote signs during install and needs the
+keys to exist on the target first. Nothing here creates keys or rebuilds.
+
+1. Reboot into the firmware and put Secure Boot into **Setup Mode**: Security → Secure Boot
+   → Secure Boot Mode, or "erase all Secure Boot keys" / "reset to setup mode" — the exact
+   wording is firmware-specific. **Merely disabling Secure Boot is not the same thing** and
+   `enroll-keys` will fail against it. From a running NixOS you can jump straight into the
+   firmware menu without the boot-time key combo:
 
    ```bash
-   sudo sbctl create-keys
+   sudo systemctl reboot --firmware-setup
    ```
 
-2. Rebuild, so lanzaboote signs the boot files with them:
+2. Back in NixOS, efivarfs marks the Secure Boot variables immutable, which blocks
+   enrolment with `File is immutable ... You need to chattr -i files in efivarfs` unless
+   cleared first:
 
    ```bash
-   sudo nixos-rebuild switch --flake .#leto
-   sudo sbctl verify          # everything under the ESP should report signed
-   ```
-
-3. Reboot into the firmware and put Secure Boot into **Setup Mode**. On this Dell that is
-   Security → Secure Boot → Secure Boot Mode, or clearing the existing keys. Nothing can
-   be enrolled while the firmware holds the factory keys.
-
-4. Back in NixOS, enrol:
-
-   ```bash
+   sudo chattr -i /sys/firmware/efi/efivars/{KEK,db}-*
    sudo sbctl enroll-keys --microsoft
    ```
 
@@ -177,11 +193,11 @@ up. `modules/hardware/secure-boot.nix` is imported by `leto`.
    blobs on Dell hardware — to keep loading. Enrolling only your own keys is a known way
    to end up with hardware that no longer initialises.
 
-5. Reboot and confirm:
+3. Reboot and confirm, as root — a normal user gets `Permission denied` reading `/boot`:
 
    ```bash
-   bootctl status             # Secure Boot: enabled (user)
-   sbctl status
+   sudo bootctl status        # Secure Boot: enabled (deployed)
+   sudo sbctl status
    ```
 
 If something goes wrong, Secure Boot can be turned off again in the firmware and the
@@ -229,6 +245,18 @@ alone would suggest.
 settings change or a Secure Boot state change can invalidate the PCR policy and leave the
 TPM unable to release the key. Without a recovery key that is unrecoverable data loss.
 
+**After any Secure Boot key or firmware change, re-enrol the TPM.** PCR 7 changes with
+them, so the old TPM keyslot stops working. Wipe it first, then re-run the enrolment
+above:
+
+```bash
+sudo systemd-cryptenroll --wipe-slot=tpm2 /dev/nvme0n1p2
+```
+
+**Back up `/var/lib/sbctl` somewhere off this machine.** It is the only copy of the keys
+that sign every future generation; losing it means a new key hierarchy and re-enrolling
+Secure Boot from Setup Mode again.
+
 **PCR choice is a trade.** Binding to PCR 7 alone (Secure Boot state) survives kernel
 updates. Adding 0, 4, 8 or 9 binds the boot chain more tightly but means re-enrolling
 after every kernel or bootloader change. `systemd-pcrlock` and signed PCR 11 policies are
@@ -243,14 +271,39 @@ sealing it *before* enabling Secure Boot guarantees the policy breaks the moment
 lanzaboote is set up in the section above. Finish that, confirm `bootctl status` reports
 Secure Boot enabled, and only then run the `systemd-cryptenroll` commands here.
 
+## Recovering a half-installed disk
+
+If `nixos-install` (or `install-fleet-host` on the installer ISO) fails partway through,
+**do not rerun disko** — it reformats the disk you were installing to, destroying
+whatever the failed run already wrote. Mount the existing partitions by hand instead and
+pick up from there. Subvolume names are from `hosts/leto/disko.nix`'s disko config:
+`@root`, `@nix`, `@home`, `@swap` — not the Btrfs-default `@`.
+
+```bash
+sudo cryptsetup open /dev/disk/by-partlabel/disk-main-luks cryptroot
+sudo mount -o subvol=@root /dev/mapper/cryptroot /mnt
+sudo mkdir -p /mnt/{boot,nix,home,swap}
+sudo mount -o subvol=@nix  /dev/mapper/cryptroot /mnt/nix
+sudo mount -o subvol=@home /dev/mapper/cryptroot /mnt/home
+sudo mount -o subvol=@swap /dev/mapper/cryptroot /mnt/swap
+sudo mount /dev/disk/by-partlabel/disk-main-ESP /mnt/boot   # or /dev/nvme0n1p1
+findmnt -R /mnt                                              # check the tree before continuing
+
+sudo nixos-install --flake ~/nix-config#leto
+# writable copy, since /etc/nix-config on the installer ISO is read-only:
+#   cp -rL /etc/nix-config ~/nix-config
+```
+
+If the failure happened before the Secure Boot keys were copied to `/mnt` (see step 5 of
+Install), redo that against the now-mounted `/mnt` before retrying `nixos-install` — it
+will fail again with the same `db.pem` error otherwise.
+
 ## First-boot checklist
 
 Things evaluation and building cannot verify:
 
 ```bash
-# greeter found the session files (SESSION_DIRS is patched for NixOS)
-#   -> Hyprland should be in ReGreet's dropdown. If not, type the command by hand:
-#      uwsm start hyprland-uwsm.desktop
+# the greeter (dank-greeter) should come up and start Hyprland directly
 
 v4l2-ctl --list-devices        # expect "Intel MIPI Camera" at /dev/video50
 wpctl status                   # expect ONE Video/Source, not thirty

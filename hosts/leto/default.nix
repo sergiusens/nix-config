@@ -111,6 +111,12 @@
     exiftool
     imagemagick
 
+    # --- recovery / secure boot ----------------------------------------------
+    # Provides `chattr`, needed to clear the immutable flag on the efivarfs
+    # entries before `sbctl enroll-keys`. The minimal installer image has it;
+    # the installed system does not unless listed here.
+    e2fsprogs
+
     # --- video --------------------------------------------------------------
     shotcut
 

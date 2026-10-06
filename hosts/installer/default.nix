@@ -30,6 +30,7 @@ let
       nixos-install-tools
       util-linux
       gnugrep
+      sbctl
     ];
     text = ''
       FLAKE=''${FLAKE:-/etc/nix-config}
@@ -62,7 +63,20 @@ let
       [[ "$confirm" == "$HOST" ]] || { echo "aborted"; exit 1; }
 
       echo "=== partitioning (disko) ==="
+      echo "If anything below this point fails, do NOT rerun this script:"
+      echo "disko would reformat the disk you just installed to. Mount by"
+      echo "hand instead and finish manually -- see the recovery recipe in"
+      echo "INSTALL.md on this ISO (/etc/nix-config/INSTALL.md)."
       disko --mode destroy,format,mount --flake "$FLAKE#$HOST"
+
+      echo "=== secure boot keys ==="
+      # lanzaboote signs the UKI during nixos-install itself, so the sbctl
+      # keys must already exist on the target -- creating them afterwards is
+      # too late and nixos-install fails looking for db.pem.
+      sbctl create-keys
+      install -d -m 700 /mnt/var/lib
+      cp -a /var/lib/sbctl /mnt/var/lib/sbctl
+      test -e /mnt/var/lib/sbctl/keys/db/db.pem || { echo "sbctl keys missing"; exit 1; }
 
       echo "=== installing ==="
       nixos-install --flake "$FLAKE#$HOST"
@@ -73,26 +87,37 @@ let
       1. Set your user password — the config ships without one:
            (log in as root on tty2)  passwd sergiusens
 
-      2. Secure Boot, BEFORE the TPM. Order matters: PCR 7 measures
-         Secure Boot state, so enrolling the TPM first then enabling
-         Secure Boot invalidates the policy.
-           sudo sbctl create-keys
-           sudo nixos-rebuild switch --flake /etc/nix-config#<host>
-           reboot -> firmware -> Secure Boot into Setup Mode
+      2. Secure Boot, BEFORE the TPM. The keys already exist and generation 1
+         is already signed -- nothing to create or rebuild here. Order
+         matters: PCR 7 measures Secure Boot state, so enrolling the TPM
+         first then enabling Secure Boot invalidates the policy.
+           reboot -> firmware -> Secure Boot -> erase all Secure Boot keys /
+                     reset to Setup Mode (disabling Secure Boot is NOT the
+                     same thing and enroll-keys will fail)
+           sudo chattr -i /sys/firmware/efi/efivars/{KEK,db}-*
            sudo sbctl enroll-keys --microsoft
-           reboot -> bootctl status
+           reboot -> sudo bootctl status
+                     (plain `bootctl status` as a normal user prints
+                     Permission denied reading /boot; use sudo)
+                     expect "Secure Boot: enabled (deployed)"
 
       3. TPM unlock, with a recovery key FIRST:
            sudo systemd-cryptenroll --recovery-key <luks-partition>
            sudo systemd-cryptenroll --tpm2-device=auto --tpm2-pcrs=7 \
                 --tpm2-with-pin=yes <luks-partition>
+         If Secure Boot keys or firmware settings change again later, PCR 7
+         changes with them -- re-run cryptenroll with --wipe-slot=tpm2
+         before re-enrolling, or you're locked out down to the recovery key.
 
-      4. Restore ~/.claude, then rename the project directories, which
+      4. Back up /var/lib/sbctl somewhere off this machine. It's the only
+         copy of the keys that sign every future generation.
+
+      5. Restore ~/.claude, then rename the project directories, which
          are keyed by absolute path and move with /var/home -> /home:
            cd ~/.claude/projects
            for d in -var-home-sergiusens-*; do mv -- "$d" "''${d/-var-home-/-home-}"; done
 
-      5. Verify what only real hardware can show: camera, OpenCL,
+      6. Verify what only real hardware can show: camera, OpenCL,
          suspend, printing, and colour management in darktable/Ansel.
          See INSTALL.md on this ISO at /etc/nix-config/INSTALL.md
       =============================================================
