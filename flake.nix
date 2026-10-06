@@ -114,6 +114,10 @@
         herdr = herdr.packages.${system}.default;
         claude-desktop = claude-desktop.packages.${system}.claude-desktop;
 
+        # See pkgs/dn-cli.nix for why this is a local derivation rather than a
+        # flake input: upstream's GitHub repo is gone.
+        dn-cli = _prev.callPackage ../pkgs/dn-cli.nix { };
+
         # See the gthumb-reflect note in inputs above.
         # inherit (gthumb-reflect.packages.${system}) gthumb-reflect;
       };
