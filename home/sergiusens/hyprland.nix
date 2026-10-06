@@ -6,6 +6,10 @@
 # the greeter actually starts.
 { pkgs, ... }:
 {
+  # hyprshot defaults to $XDG_PICTURES_DIR itself (~/Pictures); this takes
+  # priority over that and puts screenshots in their own subfolder instead.
+  home.sessionVariables.HYPRSHOT_DIR = "/home/sergiusens/Pictures/Screenshots";
+
   wayland.windowManager.hyprland = {
     enable = true;
     package = null;
