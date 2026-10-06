@@ -78,6 +78,12 @@
     "usb_storage"
     "sd_mod"
     "sdhci_pci"
+    # Intel VMD: the NVMe controller sits behind it on this chassis when
+    # firmware storage mode is set to "Intel VMD" / "RAID" rather than AHCI.
+    # Without this module the boot log shows
+    # "ahci 0000:00:0e.0: probe with driver ahci failed with error -12".
+    # Harmless to keep loaded even if the firmware is set to AHCI instead.
+    "vmd"
   ];
   boot.kernelModules = [ "kvm-intel" ];
   hardware.enableRedistributableFirmware = true;

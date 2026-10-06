@@ -102,7 +102,12 @@ in `~/.cache/leto-vm`; delete it to start from a clean disk.
    nixos-generate-config --show-hardware-config --no-filesystems
    ```
 
-   Compare, and fold in anything missing.
+   Compare, and fold in anything missing. If the firmware's storage mode is set to
+   "Intel VMD" / "RAID" rather than AHCI, the controller the NVMe disk sits behind is
+   `vmd`, not `ahci` — `hosts/leto/default.nix` already carries `"vmd"` in
+   `boot.initrd.availableKernelModules` for this. Without it the boot log shows
+   `ahci 0000:00:0e.0: probe with driver ahci failed with error -12`; switching the
+   firmware to plain AHCI also works, and either way is fine to leave `vmd` loaded.
 
 4. **Partition. THIS DESTROYS `/dev/nvme0n1`.** disko prompts for the LUKS passphrase:
 
