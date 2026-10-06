@@ -154,7 +154,14 @@
   };
 
   # Clipboard history daemon, fed by the Hyprland exec-once below.
-  home.packages = with pkgs; [ cliphist ];
+  home.packages = with pkgs; [
+    cliphist
+    # Needed by the simple-english Claude Code plugin's lint hook
+    # (~/.claude/plugins/.../src/hooks/lint_hook.py), run on every Write/Edit
+    # and on Stop. Without this, both hooks fail with "python3: command not
+    # found".
+    python3
+  ];
 
   # Default browser differs by host: leto is Firefox, kynes keeps the
   # work-issued Chrome. Hyprland has no desktop environment to arbitrate this,
