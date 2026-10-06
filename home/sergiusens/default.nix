@@ -60,12 +60,26 @@
     enable = true;
     settings = {
       user = {
-        name = "Sergio Enrique Schvezov";
-        email = "sergiusens@gmail.com";
+        name = "Sergio Schvezov";
+        email = "sergio@schvezov.net";
       };
       init.defaultBranch = "main";
       pull.rebase = true;
       push.autoSetupRemote = true;
+
+      # Mirrors what `gh auth setup-git` writes to ~/.gitconfig: clear the
+      # empty default helper first, then point at gh so HTTPS pushes don't
+      # prompt. Previously lived in a hand-edited ~/.gitconfig, which is how
+      # it silently reverted to a dead /home/linuxbrew path after a backup
+      # restore overwrote it — declaring it here means a restore can't touch it.
+      credential."https://github.com".helper = [
+        ""
+        "!${pkgs.gh}/bin/gh auth git-credential"
+      ];
+      credential."https://gist.github.com".helper = [
+        ""
+        "!${pkgs.gh}/bin/gh auth git-credential"
+      ];
     };
   };
 
