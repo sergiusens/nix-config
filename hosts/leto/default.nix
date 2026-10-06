@@ -20,6 +20,7 @@
     ../../modules/hardware/ipu6-camera.nix
     ../../modules/hardware/printing.nix
     ../../modules/hardware/secure-boot.nix
+    ../../modules/hardware/dock-sleep-guard.nix
     ../../modules/profiles/laptop.nix
     ../../modules/profiles/desktop.nix # audio, fonts, flatpak, keyring
     ../../modules/profiles/desktop-apps.nix
@@ -95,6 +96,18 @@
   ];
   boot.kernelModules = [ "kvm-intel" ];
   hardware.enableRedistributableFirmware = true;
+
+  # Thunderbolt security/link daemon. Fedora (Bluefin) and Ubuntu both enable
+  # this by default as part of their desktop stack; NixOS does not, and it is
+  # the one concrete gap found so far explaining why the dock's USB hub
+  # (modules/hardware/dock-sleep-guard.nix) survived suspend/resume under
+  # those distros but not here: bolt is what GNOME-derived stacks use to
+  # authorize and re-link Thunderbolt/USB4 devices, including the tunnelled
+  # USB passthrough docks like this one present outside their native PCIe
+  # tunnel. Does not replace dock-sleep-guard -- that still blocks suspend
+  # outright while docked, since this alone was not verified to fix the
+  # resume failure, only to close a known difference from working systems.
+  services.hardware.bolt.enable = true;
 
   # ------------------------------------------------------------------ packages --
   # Only what is specific to leto. Everything shared lives in
