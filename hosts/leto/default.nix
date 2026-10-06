@@ -54,18 +54,21 @@
   # swapfile added for the photo-OOM problem is comfortably larger than the
   # 30 GiB of RAM that hibernation needs to dump.
   #
-  # TODO: hibernation needs the swapfile's physical offset, which only exists
-  # once the file does. After the first boot:
-  #   sudo btrfs inspect-internal map-swapfile -r /swap/swapfile
-  # then uncomment below with that number. Encrypted swap on LUKS is fine —
-  # the initrd unlocks cryptroot before resuming.
+  # Offset from `sudo btrfs inspect-internal map-swapfile -r /swap/swapfile`,
+  # taken after the first boot once the swapfile actually existed. Encrypted
+  # swap on LUKS is fine — the initrd unlocks cryptroot before resuming.
   #
-  # boot.resumeDevice = "/dev/mapper/cryptroot";
-  # boot.kernelParams = [ "resume_offset=<N>" ];
-  # systemd.sleep.extraConfig = ''
-  #   HibernateDelaySec=90min
-  # '';
-  # services.logind.settings.Login.HandleLidSwitch = lib.mkForce "suspend-then-hibernate";
+  # Forced after an overnight s2idle resume came back with the kernel fully
+  # alive (clean "PM: suspend exit", devices reattached, network reconnected
+  # within 5s -- confirmed in the journal) but the panel never lit up. Nothing
+  # in the suspend/resume path logged an error, which is exactly the kind of
+  # silent failure 9+ hours of s2idle on a laptop with no S3 is prone to.
+  # Hibernating after a delay means a long sleep ends in a real power-off and
+  # a clean boot instead of an indefinite bet on s2idle holding up.
+  boot.resumeDevice = "/dev/mapper/cryptroot";
+  boot.kernelParams = [ "resume_offset=533760" ];
+  systemd.sleep.settings.Sleep.HibernateDelaySec = "90min";
+  services.logind.settings.Login.HandleLidSwitch = lib.mkForce "suspend-then-hibernate";
 
   # ------------------------------------------------------------------ hardware --
   # Verify against `nixos-generate-config --show-hardware-config` on the real
