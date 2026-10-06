@@ -40,7 +40,6 @@
     enableAudioWavelength = false;
   };
 
-  # The greeter lives in a separate project now (programs.dms-greeter from
-  # github:AvengeMedia/dank-greeter). ReGreet stays for the moment; swapping it
-  # is a separate decision from adopting the shell.
+  # The greeter is a separate project (programs.dms-greeter from
+  # github:AvengeMedia/dank-greeter), wired in modules/desktop/hyprland.nix.
 }

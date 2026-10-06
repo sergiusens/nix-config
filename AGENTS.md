@@ -43,11 +43,11 @@ When working in this repo:
 
 ## Desktop conventions
 
-- **Hyprland**, not GNOME. The compositor, greeter (`greetd` + **ReGreet** in `cage`) and
-  portals are system-level in `modules/desktop/hyprland.nix`; appearance, input and
-  keybinds are per-user in `home/sergiusens/hyprland.nix`. Do not install Hyprland twice —
-  the home-manager module sets `package = null` on purpose.
-- The `programs.regreet` module sets `services.greetd.enable` and the session command
+- **Hyprland**, not GNOME. The compositor, greeter (`greetd` + **dank-greeter**, via
+  `programs.dms-greeter`) and portals are system-level in `modules/desktop/hyprland.nix`;
+  appearance, input and keybinds are per-user in `home/sergiusens/hyprland.nix`. Do not
+  install Hyprland twice — the home-manager module sets `package = null` on purpose.
+- The `programs.dms-greeter` module sets `services.greetd.enable` and the session command
   itself, both with `mkDefault`. Never set `services.greetd.settings.default_session.command`
   alongside it: a plain definition silently wins and launches the wrong greeter.
 - **Ghostty** is the terminal. `foot` is installed alongside as a rescue terminal on a

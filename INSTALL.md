@@ -4,8 +4,8 @@ For `leto`. `kynes` needs a real `hardware-configuration.nix` first — see READ
 
 ## Try it in a VM before touching the laptop
 
-This costs nothing and answers the questions that matter: does ReGreet come up, does
-Hyprland appear in its session dropdown, do the keybinds work, is the font legible.
+This costs nothing and answers the questions that matter: does the greeter come up, does
+Hyprland start, do the keybinds work, is the font legible.
 
 ```bash
 nix build .#nixosConfigurations.leto.config.system.build.vm
@@ -65,10 +65,9 @@ in `~/.cache/leto-vm`; delete it to start from a clean disk.
 
 ### What to look for
 
-- ReGreet appears, legibly, at a sensible size — the whole reason it replaced tuigreet.
-- **Hyprland is in the session dropdown.** If the list is empty, the `SESSION_DIRS` fix in
-  `modules/desktop/hyprland.nix` did not take; type `uwsm start hyprland-uwsm.desktop`
-  by hand to get in, and the setting needs revisiting.
+- The greeter appears, legibly, at a sensible size, and matches the live DMS theme.
+- **Hyprland starts after login.** dank-greeter launches `compositor.name` directly, so
+  there is no session dropdown to check.
 - Super+Return opens Ghostty; Super+Shift+Return opens foot; Super+D opens fuzzel.
 - waybar is present, the keyboard is `latam`, and the theme is dark.
 

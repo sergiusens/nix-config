@@ -68,6 +68,15 @@
       inputs.nixpkgs.follows = "nixpkgs";
     };
 
+    # The greeter for DMS hosts. A separate project from dms itself: it wraps
+    # greetd + quickshell and copies the live DMS settings/colors into the
+    # greeter's cache dir so the login screen matches the desktop. Replaces
+    # ReGreet on leto; see modules/desktop/hyprland.nix.
+    dank-greeter = {
+      url = "github:AvengeMedia/dank-greeter";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
+
     # The gThumb 4 fork in ../gthumb ("Reflect"), which now carries its own
     # flake.nix and nix/package.nix. Left commented because the fork lives only
     # on this machine: its git remote is still upstream GNOME, so there is no
@@ -96,6 +105,7 @@
       herdr,
       claude-desktop,
       dms,
+      dank-greeter,
       lanzaboote,
       ...
     }:

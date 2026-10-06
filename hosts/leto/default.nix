@@ -133,7 +133,7 @@
       memorySize = 4096;
       cores = 4;
       diskSize = 16384;
-      # Enough room for ReGreet and Hyprland to be judged honestly.
+      # Enough room for the greeter and Hyprland to be judged honestly.
       resolution = {
         x = 1920;
         y = 1200;
