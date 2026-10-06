@@ -5,7 +5,12 @@
 #
 # Hardware quirks come from nixos-hardware's dell-xps-13-9320 module, wired up
 # in flake.nix rather than imported here.
-{ lib, pkgs, ... }:
+{
+  config,
+  lib,
+  pkgs,
+  ...
+}:
 {
   imports = [
     ./disko.nix
@@ -112,6 +117,46 @@
     # --- games --------------------------------------------------------------
     luanti # this host only; also self-hosted on thufir
   ];
+
+  # ------------------------------------------------------------- backup share --
+  # The old Déjà Dup backup repository, over CIFS rather than the gvfs smb://
+  # mount Déjà Dup itself uses. gvfs's SMB backend is a FUSE translation that
+  # does not implement chmod, which makes restic's own lock handling fail
+  # when driven from the command line against the gvfs path. A real kernel
+  # cifs mount does not have that gap.
+  #
+  # Credentials come from secrets/leto.yaml via sops-nix: cifs_username and
+  # cifs_password, combined into one credentials= file at activation time
+  # since mount.cifs wants both in a single file.
+  sops.secrets = {
+    cifs_username.sopsFile = ../../secrets/leto.yaml;
+    cifs_password.sopsFile = ../../secrets/leto.yaml;
+  };
+
+  sops.templates."cuivienen-cifs-credentials" = {
+    content = ''
+      username=${config.sops.placeholder.cifs_username}
+      password=${config.sops.placeholder.cifs_password}
+    '';
+    owner = "root";
+    mode = "0400";
+  };
+
+  fileSystems."/mnt/cuivienen" = {
+    device = "//192.168.0.101/cuivienen";
+    fsType = "cifs";
+    options = [
+      "credentials=${config.sops.templates."cuivienen-cifs-credentials".path}"
+      "uid=${toString config.users.users.sergiusens.uid}"
+      "gid=100" # "users", sergiusens' default primary group
+      "vers=3.0"
+      "_netdev"
+      "nofail" # never block boot on a NAS that might be off
+      "x-systemd.automount"
+      "x-systemd.idle-timeout=60"
+      "x-systemd.mount-timeout=10s"
+    ];
+  };
 
   # NOTE: nextcloud-client was removed. It was carried over from bluefin-xp's
   # flatpak preinstall list rather than requested, like darktable and gimp

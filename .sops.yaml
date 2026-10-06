@@ -12,12 +12,18 @@
 # secrets file:
 #   sops secrets/policy.yaml
 keys:
-  # TODO: replace with your personal age public key (age1...)
-  - &admin_sergiusens age1PLACEHOLDERPLACEHOLDERPLACEHOLDERPLACEHOLDERPLACEHOLDER
-  # TODO: replace with kynes' host age public key, derived as above
+  - &admin_sergiusens age1kzwpk420stxlaz9xycpxx69dv9urxwt3yvws7kspxx2zmdhqfygsgh6ye3
+  # Derived from leto's own SSH host key: ssh-to-age -i /etc/ssh/ssh_host_ed25519_key.pub
+  - &host_leto age1ks022puym9hlqj4r0dk8yuaj6fl3l7yn4xpcm4cqn7hh8n47y99qdl6mx8
+  # TODO: replace with kynes' host age public key, derived as above, once kynes exists
   - &host_kynes age1PLACEHOLDERPLACEHOLDERPLACEHOLDERPLACEHOLDERPLACEHOLDERHOST
 
 creation_rules:
+  - path_regex: secrets/leto\.yaml$
+    key_groups:
+      - age:
+          - *admin_sergiusens
+          - *host_leto
   - path_regex: secrets/policy\.yaml$
     key_groups:
       - age:

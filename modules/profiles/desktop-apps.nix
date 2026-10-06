@@ -21,7 +21,8 @@
     helix # editor
     newsflash # RSS
     papers # the GTK4 document viewer that replaced Evince
-    deja-dup # backups; configured in home/sergiusens/deja-dup.nix
+    deja-dup # backups; see home/sergiusens/default.nix for why it's not configured here
+    restic
     ticketbooth # film and TV tracker
     telegram-desktop
     slack # unfree
