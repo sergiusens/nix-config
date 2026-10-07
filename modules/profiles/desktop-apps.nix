@@ -19,6 +19,7 @@
     fractal # Matrix client; complements telegram-desktop and slack
     gnome-secrets # "Secrets": GNOME password manager, KeePass v4 format
     helix # editor
+    frogmouth # Markdown browser in the terminal
     newsflash # RSS
     papers # the GTK4 document viewer that replaced Evince
     deja-dup # backups; see home/sergiusens/default.nix for why it's not configured here
