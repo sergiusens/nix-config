@@ -126,7 +126,10 @@
 
         # See pkgs/dn-cli.nix for why this is a local derivation rather than a
         # flake input: upstream's GitHub repo is gone.
-        dn-cli = _prev.callPackage ../pkgs/dn-cli.nix { };
+        dn-cli = _prev.callPackage ./pkgs/dn-cli.nix { };
+
+        # Not in nixpkgs yet; see pkgs/chainctl.nix.
+        chainctl = _prev.callPackage ./pkgs/chainctl.nix { };
 
         # See the gthumb-reflect note in inputs above.
         # inherit (gthumb-reflect.packages.${system}) gthumb-reflect;
@@ -181,8 +184,12 @@
           modules = [ ./hosts/installer ];
         };
 
+        # ThinkPad X1 Carbon Gen 13. Unlike leto, nixos-hardware has this exact
+        # model. It brings common-pc-laptop, common-pc-ssd and the Lunar Lake
+        # CPU and GPU profiles, so laptopProfiles would only duplicate it. The
+        # GPU profile selects the xe driver, which Lunar Lake requires.
         kynes = mkHost "kynes" (
-          laptopProfiles
+          [ nixos-hardware.nixosModules.lenovo-thinkpad-x1-13th-gen ]
           ++ [
             # Provides services.kolide-launcher, which modules/work/compliance.nix
             # configures. A host enabling work.compliance must have this module.

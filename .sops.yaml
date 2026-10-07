@@ -3,14 +3,14 @@
 #
 # Generate a host key from its SSH host key after the first install:
 #   nix-shell -p ssh-to-age --run \
-#     'ssh-keyscan kynes.atreides | ssh-to-age'
+#     'ssh-to-age -i /etc/ssh/ssh_host_ed25519_key.pub'
 #
 # Generate your personal key once:
 #   nix-shell -p age --run 'age-keygen -o ~/.config/sops/age/keys.txt'
 #
 # Then replace the placeholders below with the real public keys, and create the
 # secrets file:
-#   sops secrets/policy.yaml
+#   sops secrets/compliance.yaml
 keys:
   - &admin_sergiusens age1kzwpk420stxlaz9xycpxx69dv9urxwt3yvws7kspxx2zmdhqfygsgh6ye3
   # Derived from leto's own SSH host key: ssh-to-age -i /etc/ssh/ssh_host_ed25519_key.pub
@@ -24,7 +24,7 @@ creation_rules:
       - age:
           - *admin_sergiusens
           - *host_leto
-  - path_regex: secrets/policy\.yaml$
+  - path_regex: secrets/compliance\.yaml$
     key_groups:
       - age:
           - *admin_sergiusens

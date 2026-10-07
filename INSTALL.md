@@ -1,6 +1,9 @@
 # Installing
 
-For `leto`. `kynes` needs a real `hardware-configuration.nix` first — see README.md.
+For `leto`. `kynes` follows the same procedure with `hosts/kynes/disko.nix`, with two
+differences. It runs no sshd, so install it at the machine, not with nixos-anywhere. After
+the first boot, derive its sops recipient with
+`ssh-to-age -i /etc/ssh/ssh_host_ed25519_key.pub` and put it in `.sops.yaml`.
 
 ## Try it in a VM before touching the laptop
 

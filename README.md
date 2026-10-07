@@ -8,7 +8,7 @@ host roster and [AGENTS.md](./AGENTS.md) for repository conventions.
 | Host | Machine | Status |
 | --- | --- | --- |
 | `leto` | Dell XPS 13 Plus 9320 — photo workstation | config written, never built |
-| `kynes` | work laptop | config written, **hardware unknown** |
+| `kynes` | ThinkPad X1 Carbon Gen 13 — work laptop | config written, never built |
 
 The other five machines in the roster stay on bootc/Universal Blue for now, built by
 `../bluefin-xp`.
@@ -112,7 +112,7 @@ Once a host runs NixOS, from this directory:
 sudo nixos-rebuild switch --flake .#leto
 
 # remote
-nixos-rebuild switch --flake .#kynes --target-host root@kynes.atreides --fast
+nixos-rebuild switch --flake .#thufir --target-host root@thufir.atreides --fast
 ```
 
 `nixos-rebuild --target-host` has no rollback protection. For anything you can't easily
@@ -357,7 +357,7 @@ once the file does. Commands are in `hosts/leto/default.nix`.
 ## Next steps
 
 1. `nix flake check` somewhere with Nix; fix the option drift.
-2. Generate `hosts/kynes/hardware-configuration.nix` on the real machine.
+2. Back up eregion's `/var/home` before installing `kynes` over it.
 3. Test the colour-management path before migrating photo work.
 4. Set up `sops-nix`: put real age public keys in `.sops.yaml`, then
    `sops secrets/compliance.yaml` with `kolide`, `falcon-cid` and `falcon-repo`. The file

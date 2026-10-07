@@ -11,16 +11,20 @@
 # atomic_cmpxchg bug in variable-bound loops the bluefin-xp comment recorded,
 # since fixed upstream. If it ever regresses, pin by overriding
 # intel-compute-runtime or take it from pkgs.unstable.
-{ pkgs, ... }:
+{ lib, pkgs, ... }:
 {
   hardware.intelgpu = {
     # i915 is the default and what darktable's OpenCL path is tested against.
     # The xe driver also binds Raptor Lake (Bluefin had both modules loaded) and
     # the profile asserts kernel >= 6.8 for it, but there is no reason to switch.
-    driver = "i915";
+    #
+    # mkDefault because this is leto's choice, not a fleet rule. kynes is Lunar
+    # Lake (Arc 140V, Xe2), which i915 does not drive at all. nixos-hardware's
+    # lunar-lake GPU profile sets "xe" and must win there.
+    driver = lib.mkDefault "i915";
 
-    # Raptor Lake is Gen12+, so the default (non-legacy) intel-compute-runtime
-    # is correct. Stated explicitly because getting this wrong gives you an
+    # Raptor Lake is Gen12+ and Lunar Lake is Xe2, so the default (non-legacy)
+    # intel-compute-runtime is correct for both. Stated explicitly because getting this wrong gives you an
     # OpenCL stack that loads but never sees the GPU.
     computeRuntime = "default";
 
