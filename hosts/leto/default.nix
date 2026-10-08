@@ -55,26 +55,19 @@
   # suspend in ~1.3 s) but s2idle keeps RAM powered and drains noticeably more
   # than S3 would over a closed-lid weekend.
   #
-  # The mitigation is suspend-then-hibernate: suspend normally, then write out
-  # to disk and power off after a delay. Now worth doing, because the 64 GiB
-  # swapfile added for the photo-OOM problem is comfortably larger than the
-  # 30 GiB of RAM that hibernation needs to dump.
-  #
-  # Offset from `sudo btrfs inspect-internal map-swapfile -r /swap/swapfile`,
-  # taken after the first boot once the swapfile actually existed. Encrypted
-  # swap on LUKS is fine — the initrd unlocks cryptroot before resuming.
-  #
-  # Forced after an overnight s2idle resume came back with the kernel fully
-  # alive (clean "PM: suspend exit", devices reattached, network reconnected
-  # within 5s -- confirmed in the journal) but the panel never lit up. Nothing
-  # in the suspend/resume path logged an error, which is exactly the kind of
-  # silent failure 9+ hours of s2idle on a laptop with no S3 is prone to.
-  # Hibernating after a delay means a long sleep ends in a real power-off and
-  # a clean boot instead of an indefinite bet on s2idle holding up.
-  boot.resumeDevice = "/dev/mapper/cryptroot";
-  boot.kernelParams = [ "resume_offset=533760" ];
-  systemd.sleep.settings.Sleep.HibernateDelaySec = "90min";
-  services.logind.settings.Login.HandleLidSwitch = lib.mkForce "suspend-then-hibernate";
+  # Tried suspend-then-hibernate as a mitigation (suspend, then write out to
+  # disk and power off after a 90 min delay) and reverted it: on 2026-10-07,
+  # the 90 min alarm fired on schedule and started hibernating, but the
+  # machine then sat frozen for close to four hours before the hibernation
+  # image actually finished writing, and never powered off cleanly
+  # afterwards -- it took a hard power-cycle to recover. Whatever device
+  # fails to resume cleanly on this machine (see dock-sleep-guard.nix for the
+  # other instance of this class of bug) can apparently hang the brief
+  # "should I hibernate yet" wake-check just as easily as a real resume, and
+  # a multi-hour unresponsive hang is a worse failure than the battery drain
+  # it was meant to fix. Back to plain suspend until that root cause is
+  # actually understood.
+  services.logind.settings.Login.HandleLidSwitch = lib.mkForce "suspend";
 
   # ------------------------------------------------------------------ hardware --
   # Verify against `nixos-generate-config --show-hardware-config` on the real
