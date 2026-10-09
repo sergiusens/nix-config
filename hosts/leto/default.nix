@@ -90,6 +90,22 @@
   boot.kernelModules = [ "kvm-intel" ];
   hardware.enableRedistributableFirmware = true;
 
+  # Intel Sensor Hub (lid angle, accelerometer, ambient light). Its Linux
+  # driver (intel_ishtp) never released a 10.5 ms LTR (Latency Tolerance
+  # Reporting -- a device telling the platform "do not sleep deeper than
+  # this") even while fully idle, confirmed with
+  # `sudo cat /sys/kernel/debug/pmc_core/ltr_show`. That alone is enough to
+  # block the platform from ever reaching real S0ix: `slp_s0_residency_usec`
+  # stayed at 0 across every suspend observed, successful or not, including
+  # a clean 2h10m one. Blacklisting trades the ambient-light auto-brightness
+  # sensor for the platform actually reaching deep sleep -- worth testing
+  # given auto-brightness was unwanted anyway.
+  boot.blacklistedKernelModules = [
+    "intel_ishtp_hid"
+    "intel_ish_ipc"
+    "intel_ishtp"
+  ];
+
   # Thunderbolt security/link daemon. Fedora (Bluefin) and Ubuntu both enable
   # this by default as part of their desktop stack; NixOS does not, and it is
   # the one concrete gap found so far explaining why the dock's USB hub
