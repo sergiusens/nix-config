@@ -69,6 +69,22 @@
   # actually understood.
   services.logind.settings.Login.HandleLidSwitch = lib.mkForce "suspend";
 
+  # In at least two incidents (2026-10-06 overnight, 2026-10-10), the long
+  # sleep's own resume logged clean -- the hang happened on a SECOND suspend
+  # requested 15-30 s after waking, before things like NetworkManager/Wi-Fi
+  # had finished reconnecting. Blacklisting intel_ishtp (above the hardware
+  # section) did not stop this from recurring, so it is not an ISH/LTR
+  # problem specifically. This holds a blocking sleep inhibitor for the
+  # first minute after every resume, so nothing -- lid, power key, power
+  # menu -- can trigger a second suspend before things have settled. Cheap
+  # to test, cheap to revert if it does not help.
+  powerManagement.resumeCommands = ''
+    ${pkgs.systemd}/bin/systemd-inhibit --what=sleep --mode=block \
+      --who="post-resume-cooldown" \
+      --why="give the first minute after resume to settle before any re-suspend" \
+      ${pkgs.coreutils}/bin/sleep 60 &
+  '';
+
   # ------------------------------------------------------------------ hardware --
   # Verify against `nixos-generate-config --show-hardware-config` on the real
   # machine before the first install; these are the expected modules for this
