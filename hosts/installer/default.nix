@@ -95,7 +95,7 @@ let
                      reset to Setup Mode (disabling Secure Boot is NOT the
                      same thing and enroll-keys will fail)
            sudo chattr -i /sys/firmware/efi/efivars/{KEK,db}-*
-           sudo sbctl enroll-keys --microsoft
+           sudo sbctl enroll-keys --microsoft --firmware-builtin
            reboot -> sudo bootctl status
                      (plain `bootctl status` as a normal user prints
                      Permission denied reading /boot; use sudo)

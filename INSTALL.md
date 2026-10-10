@@ -188,7 +188,7 @@ keys to exist on the target first. Nothing here creates keys or rebuilds.
 
    ```bash
    sudo chattr -i /sys/firmware/efi/efivars/{KEK,db}-*
-   sudo sbctl enroll-keys --microsoft
+   sudo sbctl enroll-keys --microsoft --firmware-builtin
    ```
 
    **`--microsoft` is not optional here.** It keeps Microsoft's KEK and db alongside yours,
