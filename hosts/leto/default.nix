@@ -160,6 +160,12 @@
 
     # --- games --------------------------------------------------------------
     luanti # this host only; also self-hosted on thufir
+
+    # --- personal, not kynes --------------------------------------------------
+    fractal # Matrix client
+    newsflash # RSS
+    ticketbooth # film and TV tracker
+    telegram-desktop
   ];
 
   # ------------------------------------------------------------- backup share --
