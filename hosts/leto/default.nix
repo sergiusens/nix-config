@@ -69,20 +69,28 @@
   # actually understood.
   services.logind.settings.Login.HandleLidSwitch = lib.mkForce "suspend";
 
-  # In at least two incidents (2026-10-06 overnight, 2026-10-10), the long
-  # sleep's own resume logged clean -- the hang happened on a SECOND suspend
-  # requested 15-30 s after waking, before things like NetworkManager/Wi-Fi
-  # had finished reconnecting. Blacklisting intel_ishtp (above the hardware
-  # section) did not stop this from recurring, so it is not an ISH/LTR
-  # problem specifically. This holds a blocking sleep inhibitor for the
-  # first minute after every resume, so nothing -- lid, power key, power
-  # menu -- can trigger a second suspend before things have settled. Cheap
-  # to test, cheap to revert if it does not help.
+  # In at least three incidents (2026-10-06 overnight, 2026-10-10, 2026-10-11),
+  # the long sleep's own resume logged clean -- the hang happened on a SECOND
+  # suspend requested 15-30 s after waking, before things like
+  # NetworkManager/Wi-Fi had finished reconnecting. Blacklisting intel_ishtp
+  # (above the hardware section) did not stop this from recurring, so it is
+  # not an ISH/LTR problem specifically.
+  #
+  # First attempt at this held the inhibitor by backgrounding it directly in
+  # resumeCommands (`systemd-inhibit ... sleep 60 &`), which does not work:
+  # resumeCommands runs inside sleep-actions.service's own transient scope,
+  # and systemd kills that whole cgroup -- including the backgrounded child
+  # -- the moment the script returns, well before the 60 s elapse. Confirmed
+  # on 2026-10-11: a resume at 08:17:30 was immediately followed by a second
+  # suspend at 08:17:46, 16 s later, which should have been blocked and
+  # was not. `systemd-run` spawns the inhibitor as its own independent
+  # transient unit instead, so it survives past resumeCommands' own exit.
   powerManagement.resumeCommands = ''
-    ${pkgs.systemd}/bin/systemd-inhibit --what=sleep --mode=block \
-      --who="post-resume-cooldown" \
-      --why="give the first minute after resume to settle before any re-suspend" \
-      ${pkgs.coreutils}/bin/sleep 60 &
+    ${pkgs.systemd}/bin/systemd-run --no-block --unit=post-resume-cooldown -- \
+      ${pkgs.systemd}/bin/systemd-inhibit --what=sleep --mode=block \
+        --who="post-resume-cooldown" \
+        --why="give the first minute after resume to settle before any re-suspend" \
+        ${pkgs.coreutils}/bin/sleep 60
   '';
 
   # ------------------------------------------------------------------ hardware --
