@@ -134,6 +134,18 @@
   # resume failure, only to close a known difference from working systems.
   services.hardware.bolt.enable = true;
 
+  # `fwupdmgr update` refused to stage the Dell BIOS capsule with "...
+  # fwupdx64.efi.signed cannot be found", even though fwupd-efi.service had
+  # already produced a valid one at /run/fwupd-efi/ -- fwupd's capsule plugin
+  # looks for a Microsoft-shim-signed binary at a path baked into fwupd
+  # itself at build time, not the one that service produces. There is no
+  # shim here at all: lanzaboote signs the boot chain directly with sbctl's
+  # own keys. `man 5 fwupd.conf`, [uefi_capsule] section:
+  # "DisableShimForSecureBoot=false -- The shim loader is required to
+  # chainload the fwupd EFI binary unless the fwupd.efi file has been
+  # self-signed manually" -- which is exactly this machine's setup.
+  services.fwupd.uefiCapsuleSettings.DisableShimForSecureBoot = true;
+
   # ------------------------------------------------------------------ packages --
   # Only what is specific to leto. Everything shared lives in
   # modules/profiles/desktop-apps.nix.
