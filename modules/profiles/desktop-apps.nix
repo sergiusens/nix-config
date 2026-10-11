@@ -27,6 +27,7 @@
     ticketbooth # film and TV tracker
     telegram-desktop
     slack # unfree
+    slk # terminal UI for Slack; see pkgs/slk.nix
   ];
 
   # programs.firefox rather than the bare package: it wires up policies, native

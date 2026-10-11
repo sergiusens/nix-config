@@ -131,6 +131,10 @@
         # Not in nixpkgs yet; see pkgs/chainctl.nix.
         chainctl = _prev.callPackage ./pkgs/chainctl.nix { };
 
+        # Not in nixpkgs yet; packaging lifted from wimpysworld/nix-config,
+        # see pkgs/slk.nix.
+        slk = _prev.callPackage ./pkgs/slk.nix { };
+
         # See the gthumb-reflect note in inputs above.
         # inherit (gthumb-reflect.packages.${system}) gthumb-reflect;
       };
