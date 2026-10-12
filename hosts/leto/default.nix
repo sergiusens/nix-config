@@ -192,6 +192,11 @@
     telegram-desktop
   ];
 
+  # Static site generator for sergio.schvezov.net / sergio-schvezov-net-zola;
+  # per-user rather than system-wide since it is only ever invoked from those
+  # checkouts, same reasoning as home/sergiusens/work.nix on kynes.
+  home-manager.users.sergiusens.home.packages = [ pkgs.zola ];
+
   # ------------------------------------------------------------- backup share --
   # The old Déjà Dup backup repository, over CIFS rather than the gvfs smb://
   # mount Déjà Dup itself uses. gvfs's SMB backend is a FUSE translation that
