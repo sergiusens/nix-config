@@ -167,6 +167,8 @@
     rapid-photo-downloader # card ingest; came from a COPR on bluefin-xp
     ansel-git # darktable fork, tracking master; the Reflect fork reads its database
     rapidraw # second raw developer; Reflect records rapidraw_export provenance
+    calibraw # third raw developer, GPU-first; see pkgs/calibraw.nix
+    ferrumpix # photo manager/viewer/editor with Immich+Nextcloud sync; see pkgs/ferrumpix.nix
     siril # astrophotography: registration, stacking, processing
     exiftool
     imagemagick

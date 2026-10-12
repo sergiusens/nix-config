@@ -144,6 +144,12 @@
         # nixpkgs' ansel is pinned 5 months behind master; see pkgs/ansel-git.nix.
         ansel-git = _prev.callPackage ./pkgs/ansel-git.nix { };
 
+        # Not in nixpkgs; upstream only ships binaries. See pkgs/calibraw.nix.
+        calibraw = _prev.callPackage ./pkgs/calibraw.nix { };
+
+        # Not in nixpkgs; upstream only ships binaries. See pkgs/ferrumpix.nix.
+        ferrumpix = _prev.callPackage ./pkgs/ferrumpix.nix { };
+
         # See the gthumb-reflect note in inputs above.
         # inherit (gthumb-reflect.packages.${system}) gthumb-reflect;
       };
