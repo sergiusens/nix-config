@@ -25,6 +25,12 @@ let
       pkgs.systemd
     ];
     text = ''
+      # set -e is deliberately not used here: hyprctl timing out IS the
+      # interesting case (confirmed 2026-10-12 -- "Hyprland IPC didn't
+      # respond in time" -- Hyprland alive but its event loop wedged), and
+      # that must not cut the rest of this capture or the later ones short.
+      set +e
+
       runtime_dir=/run/user/1000
       # shellcheck disable=SC2012 # signature dir names are plain hex, ls is fine
       sig=$(ls "$runtime_dir/hypr" 2>/dev/null | head -1)
@@ -48,7 +54,7 @@ let
 in
 {
   powerManagement.resumeCommands = ''
-    ${pkgs.systemd}/bin/systemd-run --no-block --unit=resume-diagnostics -- \
+    ${pkgs.systemd}/bin/systemd-run --no-block --unit="resume-diagnostics-$(date +%s%N)" -- \
       ${resumeDiagnostics}/bin/resume-diagnostics
   '';
 }
