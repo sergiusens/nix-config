@@ -207,17 +207,6 @@
         # kernel log, so this is a stuck DPMS/output state rather than a
         # driver failure). Forces every monitor's DPMS back on.
         "$mod SHIFT, P, dpms, on"
-
-        # Clamshell mode. HandleLidSwitchDocked=ignore (modules/profiles/laptop.nix)
-        # means closing the lid while docked does not suspend -- correct, since
-        # you're still working on the external monitor -- but nothing was turning
-        # the internal panel off or moving its workspace elsewhere, so whatever was
-        # on eDP-1 was stranded behind a closed lid. Disabling a monitor makes
-        # Hyprland migrate its workspace onto whatever's left active automatically.
-        # When undocked, HandleLidSwitch=suspend fires separately; this just also
-        # blanks the panel on the way down, which is harmless.
-        ", switch:on:Lid Switch, exec, hyprctl keyword monitor eDP-1,disable"
-        ", switch:off:Lid Switch, exec, hyprctl keyword monitor eDP-1,preferred,auto,auto"
       ];
 
       bindm = [

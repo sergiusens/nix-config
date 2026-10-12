@@ -3,6 +3,7 @@
   imports = [
     ./hyprland.nix
     ./herdr.nix
+    ./hyprdynamicmonitors.nix
   ];
 
   # Déjà Dup is installed (modules/profiles/desktop-apps.nix) but deliberately

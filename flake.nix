@@ -41,6 +41,12 @@
     # the combination upstream tests.
     herdr.url = "github:herdrdev/herdr";
 
+    # hyprdynamicmonitors: declarative, condition-matched monitor profiles for
+    # Hyprland (dock/undock, lid open/closed) -- see home/sergiusens/hyprland.nix
+    # for why this replaces the hand-rolled lid-switch bindl. Ships its own
+    # flake and home-manager module, nothing to package here either.
+    hyprdynamicmonitors.url = "github:fiffeek/hyprdynamicmonitors";
+
     # Unofficial Nix packaging of Anthropic's OFFICIAL Claude Desktop Linux beta,
     # built from their Debian repository rather than repackaging the Windows or
     # macOS release. NOTE: a small single-maintainer flake with a bot committing
