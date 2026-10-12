@@ -135,6 +135,9 @@
         # see pkgs/slk.nix.
         slk = _prev.callPackage ./pkgs/slk.nix { };
 
+        # nixpkgs' ansel is pinned 5 months behind master; see pkgs/ansel-git.nix.
+        ansel-git = _prev.callPackage ./pkgs/ansel-git.nix { };
+
         # See the gthumb-reflect note in inputs above.
         # inherit (gthumb-reflect.packages.${system}) gthumb-reflect;
       };

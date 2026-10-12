@@ -165,7 +165,7 @@
     # develop. gthumb is the fork in ../gthumb ("Reflect"), packaged
     # separately — see the gthumb section of README.md.
     rapid-photo-downloader # card ingest; came from a COPR on bluefin-xp
-    ansel # darktable fork; the Reflect fork reads its database
+    ansel-git # darktable fork, tracking master; the Reflect fork reads its database
     rapidraw # second raw developer; Reflect records rapidraw_export provenance
     siril # astrophotography: registration, stacking, processing
     exiftool
