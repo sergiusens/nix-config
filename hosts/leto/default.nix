@@ -22,6 +22,7 @@
     ../../modules/hardware/secure-boot.nix
     ../../modules/hardware/dock-sleep-guard.nix
     ../../modules/hardware/nvme-no-d3cold.nix
+    ../../modules/hardware/resume-diagnostics.nix
     ../../modules/profiles/laptop.nix
     ../../modules/profiles/desktop.nix # audio, fonts, flatpak, keyring
     ../../modules/profiles/desktop-apps.nix
