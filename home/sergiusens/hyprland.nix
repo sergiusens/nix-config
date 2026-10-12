@@ -201,6 +201,13 @@
         ", XF86AudioNext, exec, dms ipc call mpris next"
         ", XF86AudioPrev, exec, dms ipc call mpris previous"
 
+        # Recovery for a resume that leaves the panel black while the rest of
+        # the session is alive (input, compositor and apps all working --
+        # seen once after a long suspend, with a clean i915 resume in the
+        # kernel log, so this is a stuck DPMS/output state rather than a
+        # driver failure). Forces every monitor's DPMS back on.
+        "$mod SHIFT, P, dpms, on"
+
         # Clamshell mode. HandleLidSwitchDocked=ignore (modules/profiles/laptop.nix)
         # means closing the lid while docked does not suspend -- correct, since
         # you're still working on the external monitor -- but nothing was turning
