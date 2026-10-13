@@ -258,6 +258,13 @@ in
         };
   };
 
+  # GTK3 apps (Firefox included -- it's GTK3 on Linux, not GTK4) read this
+  # straight from settings.ini, independent of both the theme name above and
+  # the dconf/portal color-scheme key: nothing else was setting it, which is
+  # why Firefox stayed dark under Noctalia even on its "System" theme
+  # setting -- it was reading the system as dark because this was unset.
+  gtk.gtk3.extraConfig.gtk-application-prefer-dark-theme = shell != "noctalia";
+
   home.pointerCursor = {
     gtk.enable = true;
     name = "Adwaita";
