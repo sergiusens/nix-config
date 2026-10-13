@@ -4,7 +4,8 @@
 {
   # power-profiles-daemon rather than TLP. The two conflict — enabling both
   # gives you two daemons fighting over the same sysfs knobs — and PPD is what
-  # desktop power-mode toggles (including the waybar module) talk to.
+  # the active shell's power-mode toggle (DMS's control center, or Noctalia's)
+  # talks to.
   services.power-profiles-daemon.enable = true;
   powerManagement.enable = true;
 

@@ -12,6 +12,10 @@
   ...
 }:
 {
+  # Which Hyprland shell: modules/desktop/shell.nix. Flip to "noctalia" and
+  # rebuild to switch -- flip back to revert, nothing else to undo.
+  desktop.shell = "noctalia";
+
   imports = [
     ./disko.nix
     ../../modules/desktop/hyprland.nix

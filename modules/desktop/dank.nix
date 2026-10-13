@@ -1,4 +1,8 @@
-# DankMaterialShell — the desktop shell for Hyprland.
+# DankMaterialShell — one of two desktop shells for Hyprland, selected via
+# desktop.shell (modules/desktop/shell.nix). See modules/desktop/noctalia.nix
+# for the alternative. Only one is ever active -- config.desktop.shell ==
+# "dms" below -- so flipping that option and rebuilding is the entire
+# switch between them, in either direction.
 #
 # DMS is not a status bar with extras; it is a shell. It provides the panel,
 # the spotlight launcher, notifications, the lockscreen, idle handling, a
@@ -15,29 +19,39 @@
 # Hyprland 0.55+'s Lua config. We are pinned to hyprlang (see
 # home/sergiusens/hyprland.nix), so they are translated by hand. That is one
 # more reason the Lua migration is worth doing deliberately.
-{ inputs, ... }:
 {
-  imports = [ inputs.dms.nixosModules.dank-material-shell ];
+  inputs,
+  config,
+  lib,
+  ...
+}:
+{
+  imports = [
+    ./shell.nix
+    inputs.dms.nixosModules.dank-material-shell
+  ];
 
-  programs.dms-shell = {
-    enable = true;
+  config = lib.mkIf (config.desktop.shell == "dms") {
+    programs.dms-shell = {
+      enable = true;
 
-    # Start the shell with the graphical session instead of from exec-once.
-    systemd.enable = true;
+      # Start the shell with the graphical session instead of from exec-once.
+      systemd.enable = true;
 
-    # CPU, RAM and temperature widgets, via the bundled dgop.
-    enableSystemMonitoring = true;
+      # CPU, RAM and temperature widgets, via the bundled dgop.
+      enableSystemMonitoring = true;
 
-    # Recolours the shell from the current wallpaper.
-    enableDynamicTheming = true;
+      # Recolours the shell from the current wallpaper.
+      enableDynamicTheming = true;
 
-    enableClipboardPaste = true;
-    enableCalendarEvents = true;
+      enableClipboardPaste = true;
+      enableCalendarEvents = true;
 
-    # Off deliberately: no VPN on this host, and the audio wavelength widget is
-    # a continuous visualiser that costs battery on a laptop for decoration.
-    enableVPN = false;
-    enableAudioWavelength = false;
+      # Off deliberately: no VPN on this host, and the audio wavelength widget is
+      # a continuous visualiser that costs battery on a laptop for decoration.
+      enableVPN = false;
+      enableAudioWavelength = false;
+    };
   };
 
   # The greeter is a separate project (programs.dms-greeter from

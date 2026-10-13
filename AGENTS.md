@@ -43,13 +43,17 @@ When working in this repo:
 
 ## Desktop conventions
 
-- **Hyprland**, not GNOME. The compositor, greeter (`greetd` + **dank-greeter**, via
-  `programs.dms-greeter`) and portals are system-level in `modules/desktop/hyprland.nix`;
-  appearance, input and keybinds are per-user in `home/sergiusens/hyprland.nix`. Do not
-  install Hyprland twice — the home-manager module sets `package = null` on purpose.
-- The `programs.dms-greeter` module sets `services.greetd.enable` and the session command
-  itself, both with `mkDefault`. Never set `services.greetd.settings.default_session.command`
-  alongside it: a plain definition silently wins and launches the wrong greeter.
+- **Hyprland**, not GNOME. The compositor, greeter and portals are system-level in
+  `modules/desktop/hyprland.nix`; appearance, input and keybinds are per-user in
+  `home/sergiusens/hyprland.nix`. Do not install Hyprland twice — the home-manager module
+  sets `package = null` on purpose.
+- Two desktop shells live side by side, DMS and Noctalia, switched by `desktop.shell`
+  (`modules/desktop/shell.nix`, set per host). Each has its own greeter, also gated on the
+  same option: `greetd` + **dank-greeter** via `programs.dms-greeter` for `"dms"`,
+  `greetd` + **noctalia-greeter** via `services.displayManager.noctalia-greeter` for
+  `"noctalia"`. Both greeter modules set `services.greetd.enable` and the session command
+  themselves, with `mkDefault`. Never set `services.greetd.settings.default_session.command`
+  alongside either: a plain definition silently wins and launches the wrong greeter.
 - **Ghostty** is the terminal. `foot` is installed alongside as a rescue terminal on a
   separate keybind, sharing none of Ghostty's GPU/GTK dependencies.
 - The keyboard is **`latam`**. Hyprland does not read `services.xserver.xkb`, so the

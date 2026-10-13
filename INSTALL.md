@@ -68,11 +68,18 @@ in `~/.cache/leto-vm`; delete it to start from a clean disk.
 
 ### What to look for
 
-- The greeter appears, legibly, at a sensible size, and matches the live DMS theme.
-- **Hyprland starts after login.** dank-greeter launches `compositor.name` directly, so
-  there is no session dropdown to check.
-- Super+Return opens Ghostty; Super+Shift+Return opens foot; Super+D opens fuzzel.
-- waybar is present, the keyboard is `latam`, and the theme is dark.
+The host's `desktop.shell` (`hosts/<host>/default.nix`) decides which of these applies.
+If unsure which shell is active, check that file first.
+
+- The greeter appears, legibly, at a sensible size, and matches the active shell's theme.
+- **Hyprland starts after login.** Both greeters launch Hyprland directly (dank-greeter
+  via `compositor.name`, noctalia-greeter via `session.default`), so there is no session
+  dropdown to check.
+- Super+Return opens Ghostty. Super+Shift+Return opens foot. Super+Space opens the launcher:
+  DMS's spotlight panel, or Noctalia's launcher panel. Not fuzzel. DMS's adoption retired
+  that.
+- The keyboard is `latam`. The bar is the active shell's own: DMS's panel or Noctalia's
+  `bar.main`. Not waybar. Same retirement.
 
 ## Before you start
 

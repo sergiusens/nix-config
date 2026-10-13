@@ -10,6 +10,10 @@
 # in flake.nix. It selects the xe GPU driver, which Lunar Lake requires.
 { lib, pkgs, ... }:
 {
+  # Which Hyprland shell: modules/desktop/shell.nix. Flip to "noctalia" and
+  # rebuild to switch -- flip back to revert, nothing else to undo.
+  desktop.shell = "dms";
+
   imports = [
     ./disko.nix
     ../../modules/desktop/hyprland.nix
@@ -83,6 +87,12 @@
   # password stack, the field would wait for the reader to time out. Declaring
   # this service is also what makes DMS use /etc/pam.d/dankshell at all.
   # Turn fingerprint on in DMS Settings -> Lock Screen.
+  #
+  # No Noctalia equivalent needed: its lock screen (src/shell/lockscreen/
+  # lock_screen.cpp, confirmed by reading the source) authenticates against
+  # the stock "login" PAM service and drives the fingerprint reader directly
+  # over D-Bus to fprintd, never through PAM -- so it structurally can't hit
+  # the same fingerprint-blocks-password-field race DMS has.
   security.pam.services.dankshell.fprintAuth = false;
 
   # ---------------------------------------------------------------- containers --

@@ -83,6 +83,19 @@
       inputs.nixpkgs.follows = "nixpkgs";
     };
 
+    # Noctalia: the alternative shell to DMS, toggled per-host via
+    # desktop.shell (see modules/desktop/shell.nix). v5+ is a from-scratch
+    # native C++/Wayland/OpenGL ES rewrite -- no Quickshell dependency, and
+    # explicitly alpha/WIP upstream. Deliberately NO inputs.nixpkgs.follows:
+    # upstream warns that following breaks their Cachix binary-cache hash
+    # matching, forcing a full from-source build on every update. Do not
+    # "fix" this to match every other input in this file.
+    noctalia.url = "github:noctalia-dev/noctalia";
+
+    # The greeter for Noctalia hosts, same relationship to noctalia as
+    # dank-greeter has to dms: a separate project, same no-follows reasoning.
+    noctalia-greeter.url = "github:noctalia-dev/noctalia-greeter";
+
     # The gThumb 4 fork in ../gthumb ("Reflect"), which now carries its own
     # flake.nix and nix/package.nix. Left commented because the fork lives only
     # on this machine: its git remote is still upstream GNOME, so there is no
@@ -112,6 +125,8 @@
       claude-desktop,
       dms,
       dank-greeter,
+      noctalia,
+      noctalia-greeter,
       lanzaboote,
       ...
     }:

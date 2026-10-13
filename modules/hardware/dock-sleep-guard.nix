@@ -9,10 +9,10 @@
 #
 # `services.logind.settings.Login.HandleLidSwitchDocked = "ignore"` already
 # stops the LID from suspending while docked, but that is the only trigger
-# logind lets you gate on docked state. The power key, the power menu, DMS's
-# own idle timer and a plain `systemctl suspend` are not covered -- any of
-# them can still suspend a docked machine, and then hit the same hub bug on
-# the way back up.
+# logind lets you gate on docked state. The power key, the power menu, the
+# active shell's own idle timer (DMS's or Noctalia's, whichever is enabled)
+# and a plain `systemctl suspend` are not covered -- any of them can still
+# suspend a docked machine, and then hit the same hub bug on the way back up.
 #
 # This holds a blocking sleep inhibitor for as long as `busctl` reports the
 # machine docked, which makes logind refuse every one of those triggers

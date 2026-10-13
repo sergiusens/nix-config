@@ -1,9 +1,21 @@
-{ pkgs, hostName, ... }:
+{
+  pkgs,
+  hostName,
+  osConfig,
+  ...
+}:
+let
+  # "dms" | "noctalia" -- modules/desktop/shell.nix. Defaults to "dms" on
+  # hosts that never import that module (thufir: modules/common/home.nix
+  # applies this whole profile everywhere, headless or not).
+  shell = (osConfig.desktop or { }).shell or "dms";
+in
 {
   imports = [
     ./hyprland.nix
     ./herdr.nix
     ./hyprdynamicmonitors.nix
+    ./noctalia.nix
   ];
 
   # Déjà Dup is installed (modules/profiles/desktop-apps.nix) but deliberately
@@ -31,10 +43,16 @@
       font-family = "JetBrainsMono Nerd Font";
       font-size = 11;
       # Ghostty's bundled theme names are the upstream iTerm2-Color-Schemes
-      # names: capitalised, spaced. `catppuccin-mocha` does not exist and
-      # Ghostty opens a "Configuration Errors" dialog on every start.
-      # Full list: ls $(nix eval --raw .#…pkgs.ghostty)/share/ghostty/themes
-      theme = "Catppuccin Mocha";
+      # names: capitalised, spaced. A typo'd/nonexistent name (`catppuccin-mocha`
+      # does not exist, for instance) opens a "Configuration Errors" dialog on
+      # every start. Full list:
+      #   ls $(nix eval --raw .#…pkgs.ghostty)/share/ghostty/themes
+      # "Nord" and "Nord Light" are both bundled -- confirmed in that listing.
+      # `light:X,dark:Y` is Ghostty's own native syntax: it follows the
+      # desktop's actual light/dark signal, which tracks reality (including a
+      # dark/light toggle inside Noctalia itself) better than keying off
+      # desktop.shell directly would.
+      theme = "light:Nord Light,dark:Nord";
 
       window-padding-x = 8;
       window-padding-y = 8;
@@ -189,16 +207,55 @@
   home.sessionVariables.BROWSER =
     if hostName == "kynes" then "google-chrome-stable" else "firefox";
 
+  # Real Nord-palette packages, not generic Adwaita: pkgs.nordic is
+  # EliverLara's Nordic (GTK + KDE themes built on the actual Nord colors),
+  # and pkgs.papirus-nord is Papirus with its folder icons recolored to a
+  # Nord accent (defaults to frostblue1, which is the same Frost blue used
+  # as the primary accent everywhere else in this Nord setup).
+  #
+  # There is no genuine light Nordic variant upstream -- "Nordic" itself is
+  # explicitly a dark GTK3.20+ theme. Nordic-Polar is the closest real thing:
+  # EliverLara's own description calls it "a mixed theme using light
+  # widgets," i.e. still fundamentally dark, not a true light surface theme.
+  # It is what Noctalia's light side gets regardless, since it is the only
+  # Nord-palette GTK option that leans light at all; DMS keeps the standard
+  # dark Nordic-bluish-accent variant, matching papirus-nord's blue accent.
+  # Both revert along with everything else when desktop.shell flips back.
+  #
+  # GTK3's gtk-theme-name (below) only reaches GTK3 apps. GTK4/libadwaita
+  # apps (Nautilus, Papers, GNOME Secrets) ignore classic theme CSS entirely
+  # and instead render their own light/dark adaptive stylesheet based on the
+  # org.freedesktop.appearance "color-scheme" portal value -- backed by this
+  # dconf key, which xdg-desktop-portal-gtk reads to answer that portal
+  # query. Confirmed live: color-scheme stayed at 1 (prefer-dark) under
+  # Noctalia with only gtk.theme set, because nothing was writing this key.
+  dconf.settings."org/gnome/desktop/interface".color-scheme =
+    if shell == "noctalia" then "prefer-light" else "prefer-dark";
+
   gtk = {
     enable = true;
-    theme = {
-      name = "Adwaita-dark";
-      package = pkgs.gnome-themes-extra;
-    };
-    iconTheme = {
-      name = "Papirus-Dark";
-      package = pkgs.papirus-icon-theme;
-    };
+    theme =
+      if shell == "noctalia" then
+        {
+          name = "Nordic-Polar";
+          package = pkgs.nordic;
+        }
+      else
+        {
+          name = "Nordic-bluish-accent";
+          package = pkgs.nordic;
+        };
+    iconTheme =
+      if shell == "noctalia" then
+        {
+          name = "Papirus-Light";
+          package = pkgs.papirus-nord;
+        }
+      else
+        {
+          name = "Papirus-Dark";
+          package = pkgs.papirus-nord;
+        };
   };
 
   home.pointerCursor = {

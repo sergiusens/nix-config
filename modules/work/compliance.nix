@@ -73,7 +73,8 @@ in
     # The Kolide checks that block sign-in (announced in #linux, 2026-05-07):
     #   CrowdStrike running            -> the agents below
     #   disk encryption                -> LUKS, hosts/kynes/disko.nix
-    #   secure screen lock             -> DMS lockscreen
+    #   secure screen lock             -> the active shell's lockscreen (DMS
+    #                                      or Noctalia, per desktop.shell)
     #   iptables default policy        -> networking.firewall, on in modules/common
     #   account passwords set          -> set at install, see INSTALL.md
     #   sudo requires a password       -> security.sudo.wheelNeedsPassword

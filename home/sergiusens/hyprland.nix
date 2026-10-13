@@ -4,7 +4,86 @@
 # modules/desktop/hyprland.nix, so package and portalPackage are null here —
 # setting them would install a second Hyprland that disagrees with the session
 # the greeter actually starts.
-{ pkgs, ... }:
+{
+  pkgs,
+  osConfig,
+  lib,
+  ...
+}:
+let
+  # "dms" | "noctalia" -- modules/desktop/shell.nix. Defaults to "dms" on
+  # hosts that never import that module (thufir: modules/common/home.nix
+  # applies this whole profile everywhere, headless or not).
+  shell = (osConfig.desktop or { }).shell or "dms";
+
+  # Logical action -> exec command, per shell. Command names confirmed
+  # against each project's own source at the locked rev: DMS's
+  # core/internal/config/embedded/hypr-binds.lua and Noctalia's
+  # src/cli/schema_msg.h. `null` means that shell has no equivalent, in
+  # which case the bind using it is dropped entirely rather than left
+  # pointing at a no-op.
+  shellCmd = {
+    toggleLauncher.dms = "dms ipc call spotlight toggle";
+    toggleLauncher.noctalia = "noctalia msg panel-toggle launcher";
+
+    lock.dms = "dms ipc call lock lock";
+    lock.noctalia = "noctalia msg session lock";
+
+    toggleClipboard.dms = "dms ipc call clipboard toggle";
+    toggleClipboard.noctalia = "noctalia msg panel-toggle clipboard";
+
+    toggleNotifications.dms = "dms ipc call notifications toggle";
+    toggleNotifications.noctalia = "noctalia msg panel-toggle control-center notifications";
+
+    togglePowermenu.dms = "dms ipc call powermenu toggle";
+    togglePowermenu.noctalia = "noctalia msg panel-toggle session";
+
+    toggleSettings.dms = "dms ipc call settings focusOrToggle";
+    toggleSettings.noctalia = "noctalia msg settings-toggle";
+
+    # No Noctalia equivalent (no "keybinds cheat-sheet" command in
+    # src/cli/schema_msg.h) -- the bind using this is dropped under
+    # Noctalia, not pointed at a no-op.
+    toggleKeybindsCheatsheet.dms = "dms ipc call keybinds toggle hyprland";
+    toggleKeybindsCheatsheet.noctalia = null;
+
+    brightnessUp.dms = ''dms ipc call brightness increment 5 ""'';
+    brightnessUp.noctalia = ''noctalia msg brightness-up "" 5'';
+
+    brightnessDown.dms = ''dms ipc call brightness decrement 5 ""'';
+    brightnessDown.noctalia = ''noctalia msg brightness-down "" 5'';
+
+    volumeUp.dms = "dms ipc call audio increment 3";
+    volumeUp.noctalia = "noctalia msg volume-up 3";
+
+    volumeDown.dms = "dms ipc call audio decrement 3";
+    volumeDown.noctalia = "noctalia msg volume-down 3";
+
+    mute.dms = "dms ipc call audio mute";
+    mute.noctalia = "noctalia msg volume-mute";
+
+    micMute.dms = "dms ipc call audio micmute";
+    micMute.noctalia = "noctalia msg mic-mute";
+
+    mediaPlayPause.dms = "dms ipc call mpris playPause";
+    mediaPlayPause.noctalia = "noctalia msg media toggle";
+
+    mediaNext.dms = "dms ipc call mpris next";
+    mediaNext.noctalia = "noctalia msg media next";
+
+    mediaPrev.dms = "dms ipc call mpris previous";
+    mediaPrev.noctalia = "noctalia msg media previous";
+  };
+
+  # "exec, <command>" for a bind line, or null if this shell has no
+  # equivalent for this action (filtered out of the bind list below).
+  bindExec =
+    action:
+    let
+      c = shellCmd.${action}.${shell};
+    in
+    if c == null then null else "exec, ${c}";
+in
 {
   # hyprshot defaults to $XDG_PICTURES_DIR itself (~/Pictures); this takes
   # priority over that and puts screenshots in their own subfolder instead.
@@ -115,8 +194,9 @@
       };
 
       # -------------------------------------------------------------- autostart --
-      # Nothing to autostart. DankMaterialShell runs from its own systemd user
-      # unit (programs.dms-shell.systemd.enable) and brings the polkit agent
+      # Nothing to autostart. Whichever shell is active (desktop.shell) runs
+      # from its own systemd user unit -- programs.dms-shell.systemd.enable
+      # or programs.noctalia.systemd.enable -- and brings the polkit agent
       # and clipboard with it. Anything added here must NOT duplicate a
       # systemd user service, or you get two of it — the two-waybars fault.
 
@@ -130,11 +210,11 @@
         "$mod, Return, exec, uwsm app -- ghostty"
         "$mod SHIFT, Return, exec, uwsm app -- foot"
 
-        "$mod, D, exec, dms ipc call spotlight toggle"
+        "$mod, space, ${bindExec "toggleLauncher"}"
         "$mod, E, exec, uwsm app -- nautilus"
         "$mod, Q, killactive,"
         "$mod SHIFT, E, exit,"
-        "$mod, L, exec, dms ipc call lock lock"
+        "$mod, L, ${bindExec "lock"}"
         "$mod, V, togglefloating,"
         "$mod, F, fullscreen,"
         "$mod, P, pseudo,"
@@ -142,14 +222,17 @@
         # (the default config calls hl.dsp.layout("togglesplit")).
         "$mod, J, layoutmsg, togglesplit"
 
-        # DankMaterialShell surfaces. Verbs come from the project's own
-        # core/internal/config/embedded/hypr-binds.lua, translated to hyprlang.
-        "$mod SHIFT, V, exec, dms ipc call clipboard toggle"
-        "$mod, N, exec, dms ipc call notifications toggle"
-        "$mod, X, exec, dms ipc call powermenu toggle"
-        "$mod, comma, exec, dms ipc call settings focusOrToggle"
-        "$mod SHIFT, Slash, exec, dms ipc call keybinds toggle hyprland"
-
+        # Shell surfaces (DMS or Noctalia, per desktop.shell -- see the
+        # shellCmd table above).
+        "$mod SHIFT, V, ${bindExec "toggleClipboard"}"
+        "$mod, N, ${bindExec "toggleNotifications"}"
+        "$mod, X, ${bindExec "togglePowermenu"}"
+        "$mod, comma, ${bindExec "toggleSettings"}"
+      ]
+      ++ lib.optional (shellCmd.toggleKeybindsCheatsheet.${shell} != null) (
+        "$mod SHIFT, Slash, ${bindExec "toggleKeybindsCheatsheet"}"
+      )
+      ++ [
         # Screenshots
         ", Print, exec, hyprshot -m output"
         "$mod, Print, exec, hyprshot -m region"
@@ -184,22 +267,23 @@
       );
 
       # Repeat while held
-      # Routed through DMS rather than brightnessctl/pamixer directly, so its
-      # on-screen display appears and the shell's own state stays in step.
+      # Routed through the active shell rather than brightnessctl/pamixer
+      # directly, so its on-screen display appears and the shell's own state
+      # stays in step.
       binde = [
-        ", XF86MonBrightnessUp, exec, dms ipc call brightness increment 5 \"\""
-        ", XF86MonBrightnessDown, exec, dms ipc call brightness decrement 5 \"\""
-        ", XF86AudioRaiseVolume, exec, dms ipc call audio increment 3"
-        ", XF86AudioLowerVolume, exec, dms ipc call audio decrement 3"
+        ", XF86MonBrightnessUp, ${bindExec "brightnessUp"}"
+        ", XF86MonBrightnessDown, ${bindExec "brightnessDown"}"
+        ", XF86AudioRaiseVolume, ${bindExec "volumeUp"}"
+        ", XF86AudioLowerVolume, ${bindExec "volumeDown"}"
       ];
 
       # Work even when the screen is locked
       bindl = [
-        ", XF86AudioMute, exec, dms ipc call audio mute"
-        ", XF86AudioMicMute, exec, dms ipc call audio micmute"
-        ", XF86AudioPlay, exec, dms ipc call mpris playPause"
-        ", XF86AudioNext, exec, dms ipc call mpris next"
-        ", XF86AudioPrev, exec, dms ipc call mpris previous"
+        ", XF86AudioMute, ${bindExec "mute"}"
+        ", XF86AudioMicMute, ${bindExec "micMute"}"
+        ", XF86AudioPlay, ${bindExec "mediaPlayPause"}"
+        ", XF86AudioNext, ${bindExec "mediaNext"}"
+        ", XF86AudioPrev, ${bindExec "mediaPrev"}"
 
         # Recovery for a resume that leaves the panel black while the rest of
         # the session is alive (input, compositor and apps all working --
@@ -216,6 +300,7 @@
     };
   };
 
-  # Wallpaper is DankMaterialShell's: `dms ipc call wallpaper set <path>`,
-  # and enableDynamicTheming recolours the shell from it. hyprpaper removed.
+  # Wallpaper is the active shell's own: `dms ipc call wallpaper set <path>`
+  # (DMS, with enableDynamicTheming recolouring from it) or `noctalia msg
+  # wallpaper-set <path>` (Noctalia). hyprpaper removed.
 }
