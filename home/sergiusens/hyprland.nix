@@ -117,6 +117,18 @@ in
     configType = "hyprlang";
 
     settings = {
+      # --------------------------------------------------------- environment --
+      # gcr-ssh-agent's SSH_AUTH_SOCK only ever lands in the systemd --user
+      # manager's own environment table (confirmed via `systemctl --user
+      # show-environment`), never in Hyprland's process environment -- so
+      # anything Hyprland execs directly (every terminal bind below goes
+      # through `uwsm app --`, but ghostty is single-instance: after the
+      # first window, "new" windows are opened via IPC to that already-
+      # running process, which forked straight from Hyprland and never
+      # touched uwsm/systemd-run) inherits Hyprland's env, not systemd's.
+      # Set it here so it's present from Hyprland's first exec onward.
+      env = [ "SSH_AUTH_SOCK,$XDG_RUNTIME_DIR/gcr/ssh" ];
+
       # ------------------------------------------------------------- monitors --
       # XPS 13 Plus 9320 ships in FHD+ (1920x1200), OLED 3.5K (3456x2160) and
       # UHD+ (3840x2400) variants. `preferred,auto,auto` lets Hyprland pick the
