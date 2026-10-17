@@ -11,11 +11,12 @@
 {
   ansel,
   fetchFromGitHub,
+  fetchpatch,
   glib,
   lib,
 }:
 ansel.overrideAttrs (old: {
-  version = "0-unstable-2026-10-09";
+  version = "0-unstable-2026-10-13";
 
   src = fetchFromGitHub {
     owner = "aurelienpierreeng";
@@ -24,6 +25,15 @@ ansel.overrideAttrs (old: {
     hash = "sha256-bVbGf4M/eBO0FSDmNewQk/k8VU/T4kQpglPsDuQDuqM=";
     fetchSubmodules = true;
   };
+
+  # Not yet merged upstream: sergiusens/ansel@b2e7b56 on top of the pinned
+  # rev above. Keeps keyboard-moved selection in sync in the thumbtable grid.
+  patches = (old.patches or [ ]) ++ [
+    (fetchpatch {
+      url = "https://github.com/sergiusens/ansel/commit/b2e7b56bbe1683d658a98a63bc03f3c5c4e751bc.patch";
+      hash = "sha256-Sy2xIWmZN+MuaUlQLPtKxwVMzaBGLtFmKvalRGCmlz8=";
+    })
+  ];
 
   # New since nixpkgs' pin: src/libs/collect.c includes <gio/gunixmounts.h>,
   # which lives under glib's versioned gio-unix-2.0/ include subdirectory
